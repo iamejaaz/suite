@@ -34,7 +34,7 @@ graph). Three gates run in plain `vitest`:
 npx vitest run src/apps/sheets/engine
 
 # the exploratory differential (installs the reference engine, dev-only):
-yarn add -D hyperformula
+pnpm add -D hyperformula
 node src/apps/sheets/engine/difftest/compare-engines.js 8000   # old vs new vs oracle, per-bucket
 node src/apps/sheets/engine/difftest/run.js 5000               # writes report.md
 ```
