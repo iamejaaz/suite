@@ -35,8 +35,8 @@ npx vitest run src/apps/sheets/engine
 
 # the exploratory differential (installs the reference engine, dev-only):
 pnpm add -D hyperformula
-node src/apps/sheets/engine/difftest/compare-engines.js 8000   # old vs new vs oracle, per-bucket
-node src/apps/sheets/engine/difftest/run.js 5000               # writes report.md
+node frontend/src/apps/sheets/engine/difftest/compare-engines.js 8000   # old vs new vs oracle, per-bucket
+node frontend/src/apps/sheets/engine/difftest/run.js 5000               # writes report.md
 ```
 
 `hyperformula` is **not** a committed dependency — the shipped app never bundles
