@@ -74,7 +74,7 @@
    "fieldname": "phash",
    "fieldtype": "Data",
    "label": "Perceptual Hash",
-   "length": 16,
+   "length": 64,
    "search_index": 1
   },
   {
@@ -111,7 +111,7 @@
   }
  ],
  "links": [],
- "modified": "2026-10-14 21:00:00.000000",
+ "modified": "2026-10-14 22:00:00.000000",
  "modified_by": "Administrator",
  "module": "Photos",
  "name": "Photo Metadata",

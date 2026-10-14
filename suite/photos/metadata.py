@@ -12,6 +12,7 @@ DATETIME_ORIGINAL = 0x9003
 MAKE = 0x010F
 MODEL = 0x0110
 ROTATED_ORIENTATIONS = {5, 6, 7, 8}
+HASH_SIZE = 16
 
 
 def enqueue_extract(doc, method=None):
@@ -120,13 +121,14 @@ def _video_hash(container, stream, duration):
 def image_hash(image):
     from PIL import ImageOps
 
-    small = ImageOps.exif_transpose(image).convert("L").resize((9, 8))
-    pixels = list(small.getdata())
+    small = ImageOps.exif_transpose(image).convert("L").resize((HASH_SIZE + 1, HASH_SIZE))
+    pixels = small.tobytes()
     bits = 0
-    for row in range(8):
-        for col in range(8):
-            bits = (bits << 1) | (pixels[row * 9 + col] > pixels[row * 9 + col + 1])
-    return f"{bits:016x}"
+    for row in range(HASH_SIZE):
+        for col in range(HASH_SIZE):
+            index = row * (HASH_SIZE + 1) + col
+            bits = (bits << 1) | (pixels[index] > pixels[index + 1])
+    return f"{bits:0{HASH_SIZE * HASH_SIZE // 4}x}"
 
 
 def file_hash(file_name):

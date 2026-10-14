@@ -13,7 +13,7 @@ from suite.drive.api.list import get_query_data
 from suite.drive.api.permissions import get_user_access, user_has_permission
 from suite.drive.utils import STATUS_ACTIVE, STATUS_TRASHED, get_principals, get_user_folder
 from suite.drive.utils.overrides import file_permission_criterion
-from suite.photos.metadata import enqueue_missing, file_hash
+from suite.photos.metadata import HASH_SIZE, enqueue_missing, file_hash
 
 File = frappe.qb.DocType("File")
 Metadata = frappe.qb.DocType("Photo Metadata")
@@ -425,7 +425,7 @@ def _as_list(value):
 
 
 @frappe.whitelist()
-def duplicates(threshold: int = 4):
+def duplicates(threshold: int = 8):
     rows = (
         media_base(archived=None)
         .where(File.owner == frappe.session.user)
@@ -445,7 +445,7 @@ def duplicates(threshold: int = 4):
         .run(as_dict=True)
     )
     for row in rows:
-        if not row.phash and row.metadata:
+        if row.metadata and len(row.phash or "") != HASH_SIZE * HASH_SIZE // 4:
             row.phash = file_hash(row.name)
             if row.phash:
                 frappe.db.set_value("Photo Metadata", row.metadata, "phash", row.phash, update_modified=False)
