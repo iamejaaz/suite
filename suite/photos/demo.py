@@ -6,16 +6,12 @@ from fractions import Fraction
 from pathlib import Path
 
 import frappe
-import mimemapper
 import requests
 from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageOps
 
-from suite.drive.api.files import get_upload_path
-from suite.drive.utils import create_drive_file, get_file_type, get_new_file_name, update_file_size
-from suite.drive.utils.files import FileManager
 from suite.photos.api import albums as album_api
 from suite.photos.api import photos as photos_api
-from suite.photos.metadata import extract
+from suite.photos.library import add_file
 
 ADMIN = "Administrator"
 USERS = {
@@ -61,14 +57,14 @@ def load(images_dir=None, count=80):
         for index, (source, trip, gps, taken, owner) in enumerate(plan):
             target = work / f"{trip.upper()}_{taken:%Y%m%d_%H%M}.jpg"
             _with_exif(source, target, taken, gps, CAMERAS[index % len(CAMERAS)])
-            uploaded.setdefault(trip, []).append(_save(target, owners[owner], taken))
+            uploaded.setdefault(trip, []).append(add_file(target, owners[owner], taken))
             print(f"\rUploading {index + 1}/{len(plan)}", end="", flush=True)
         print()
         for trip, frame in (("goa", plan[0][0]), ("manali", plan[14][0])):
             video = work / f"{trip.upper()}_clip.mp4"
             taken = datetime.datetime(*next(t[2] for t in TRIPS if t[0] == trip), 17, 30)
             _video(frame, video, taken)
-            uploaded[trip].append(_save(video, owners["admin"], taken))
+            uploaded[trip].append(add_file(video, owners["admin"], taken))
         _albums(uploaded, owners)
         _people(sources, work, owners["admin"], today)
         frappe.db.commit()
@@ -196,30 +192,6 @@ def _video(frame, target, taken, extra=()):
         container.metadata["creation_time"] = taken.strftime("%Y-%m-%dT%H:%M:%S.000000Z")
 
 
-def _save(path, owner, taken):
-    frappe.set_user(owner)
-    parent = photos_api.get_upload_folder()
-    file_name = get_new_file_name(path.name, parent)
-    temp = get_upload_path(f"demo_{frappe.generate_hash(8)}_{file_name}")
-    shutil.copyfile(path, temp)
-    mime_type = mimemapper.get_mime_type(str(temp), native_first=False)
-    manager = FileManager()
-    drive_file = create_drive_file(
-        file_name,
-        parent,
-        get_file_type(mime_type),
-        lambda file: "/" + str(manager.get_disk_path(file, False)),
-        mime_type,
-        temp.stat().st_size,
-        taken.timestamp(),
-        owner=owner,
-    )
-    manager.upload_file(temp, drive_file, True)
-    update_file_size(parent, drive_file.file_size)
-    extract(drive_file.name)
-    return drive_file.name
-
-
 def _albums(uploaded, owners):
     admin, priya, rahul = owners["admin"], owners["priya"], owners["rahul"]
     frappe.set_user(admin)
@@ -279,7 +251,7 @@ def _people(sources, work, owner, today):
         background.save(source, quality=88)
         target = work / f"PXL_{taken:%Y%m%d_%H%M%S}.jpg"
         _with_exif(source, target, taken, None, CAMERAS[1])
-        name = _save(target, owner, taken)
+        name = add_file(target, owner, taken)
         files.append(name)
         if len(people) == 1:
             solo.setdefault(people[0], []).append(name)
@@ -288,7 +260,7 @@ def _people(sources, work, owner, today):
     clip = work / "PXL_party_clip.mp4"
     clip_taken = today - datetime.timedelta(days=30, hours=4)
     _video(group_shots[0], clip, clip_taken, extra=group_shots[1:])
-    files.append(_save(clip, owner, clip_taken))
+    files.append(add_file(clip, owner, clip_taken))
 
     frappe.set_user(owner)
     album_api.create_album("Friends and family", files)
