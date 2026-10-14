@@ -80,7 +80,7 @@ import {
   toast,
   useKeyboardShortcut,
 } from 'frappe-ui'
-import LucideBookImage from '~icons/lucide/book-image'
+import LucideLibrary from '~icons/lucide/library'
 import LucideImages from '~icons/lucide/images'
 import LucideCompass from '~icons/lucide/compass'
 import LucideUsers from '~icons/lucide/users'
@@ -136,7 +136,7 @@ const mobileNav = [
   { label: __('Photos'), icon: LucideImages, to: { name: 'photos-home' } },
   { label: __('Explore'), icon: LucideCompass, to: { name: 'photos-explore' } },
   { label: __('Sharing'), icon: LucideUsers, to: { name: 'photos-sharing' } },
-  { label: __('Albums'), icon: LucideBookImage, to: { name: 'photos-albums' } },
+  { label: __('Library'), icon: LucideLibrary, to: { name: 'photos-library' } },
 ]
 
 function onDragOver(event: DragEvent) {

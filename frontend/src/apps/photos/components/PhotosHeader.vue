@@ -27,10 +27,21 @@
             <template #prefix><LucideSearch class="size-4 text-ink-gray-5" /></template>
           </TextInput>
         </form>
+        <Button
+          v-if="searchable && $route.name !== 'photos-search'"
+          class="sm:hidden"
+          variant="ghost"
+          :aria-label="__('Search')"
+          :route="{ name: 'photos-search' }"
+        >
+          <template #icon><LucideSearch class="size-4" /></template>
+        </Button>
         <slot name="actions" />
         <Button v-if="!hideUpload" variant="subtle" :loading="upload.active" @click="pickFiles">
           <template #prefix><LucideUpload class="size-4" /></template>
-          {{ upload.active ? __('Uploading {0} of {1}', [upload.done + 1, upload.total]) : __('Upload') }}
+          <span class="hidden sm:inline">
+            {{ upload.active ? __('Uploading {0} of {1}', [upload.done + 1, upload.total]) : __('Upload') }}
+          </span>
         </Button>
       </div>
     </template>
