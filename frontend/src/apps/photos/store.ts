@@ -145,6 +145,8 @@ export function makeCollage(files: string[]) {
   collage.open = true
 }
 
+export const libraryShare = reactive({ open: false })
+
 export const movie = reactive<{ open: boolean; files: string[] }>({ open: false, files: [] })
 export function makeMovie(files: string[]) {
   if (files.length < 2) {

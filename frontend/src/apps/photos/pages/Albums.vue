@@ -7,6 +7,29 @@
       </Button>
     </template>
   </PhotosHeader>
+  <section v-if="shared && libraries.length" class="px-3 pt-4 sm:px-5">
+    <h2 class="mb-3 text-base font-semibold text-ink-gray-8">{{ __('Libraries shared with you') }}</h2>
+    <div class="flex flex-wrap gap-3">
+      <router-link
+        v-for="library in libraries"
+        :key="library.name"
+        :to="{ name: 'photos-folder', params: { folder: library.name } }"
+        class="flex items-center gap-3 rounded-lg border p-2 pr-4 hover:bg-surface-gray-1"
+      >
+        <img
+          v-if="library.cover"
+          :src="thumbnailUrl(library.cover)"
+          class="size-10 rounded object-cover"
+          alt=""
+        />
+        <div>
+          <div class="text-base font-medium text-ink-gray-8">{{ library.owner_name }}</div>
+          <div class="text-sm text-ink-gray-5">{{ itemCount(library.count) }}</div>
+        </div>
+      </router-link>
+    </div>
+    <h2 class="mb-1 mt-6 text-base font-semibold text-ink-gray-8">{{ __('Albums') }}</h2>
+  </section>
   <div class="grid grid-cols-2 gap-x-4 gap-y-6 p-3 sm:grid-cols-3 sm:p-5 lg:grid-cols-4 xl:grid-cols-5">
     <router-link
       v-for="album in list"
@@ -76,7 +99,7 @@ import LucidePlus from '~icons/lucide/plus'
 import LucideUsers from '~icons/lucide/users'
 
 import { appPageMeta } from '@/utils/documentTitle'
-import { createAlbum, thumbnailUrl } from '../api'
+import { type Folder, createAlbum, getFolders, getLibraryFolder, thumbnailUrl } from '../api'
 import PhotosHeader from '../components/PhotosHeader.vue'
 import { albums, albumsLoaded, loadAlbums, markSharingSeen, sharedAlbums } from '../store'
 import { itemCount } from '../utils'
@@ -86,6 +109,12 @@ const router = useRouter()
 const creating = ref(false)
 const title = ref('')
 const list = computed(() => (props.shared ? sharedAlbums.value : albums.value))
+const libraries = ref<Folder[]>([])
+if (props.shared) {
+  Promise.all([getFolders(), getLibraryFolder()]).then(([folders, mine]) => {
+    libraries.value = folders.filter((folder) => folder.title === 'Photos' && folder.name !== mine.name)
+  })
+}
 loadAlbums().then(() => props.shared && markSharingSeen())
 
 async function create() {

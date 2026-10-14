@@ -54,11 +54,12 @@
 <script setup lang="ts">
 import { type Component, computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Button, Dialog, PageHeader, TextInput, Tooltip } from 'frappe-ui'
+import { Button, Dialog, PageHeader, TextInput, Tooltip, toast } from 'frappe-ui'
 import LucideArchive from '~icons/lucide/archive'
 import LucideArchiveRestore from '~icons/lucide/archive-restore'
 import LucideClapperboard from '~icons/lucide/clapperboard'
 import LucideDownload from '~icons/lucide/download'
+import LucideImageDown from '~icons/lucide/image-down'
 import LucideImageMinus from '~icons/lucide/image-minus'
 import LucideImagePlus from '~icons/lucide/image-plus'
 import LucideImageUp from '~icons/lucide/image-up'
@@ -72,7 +73,7 @@ import LucideUserX from '~icons/lucide/user-x'
 import LucideX from '~icons/lucide/x'
 
 import { useSessionStore } from '@/boot/session'
-import { type Album, type Photo, isVideo } from '../api'
+import { type Album, type Photo, isVideo, saveToLibrary } from '../api'
 import {
   activeFeed,
   archive,
@@ -165,6 +166,19 @@ const actions = computed<Action[]>(() => {
     ]
   if (props.mode === 'album') {
     const list: Action[] = loggedIn.value ? [addToAlbum, save, movie] : [save]
+    if (loggedIn.value && !props.album?.access?.owner)
+      list.push({
+        label: __('Save to your photos'),
+        icon: LucideImageDown,
+        run: async (names) => {
+          const saved = await saveToLibrary(names)
+          toast.success(
+            saved.length === 1
+              ? __('Saved to your photos')
+              : __('{0} items saved to your photos', [saved.length]),
+          )
+        },
+      })
     if (props.album?.access?.write) {
       list.push({
         label: __('Remove from album'),

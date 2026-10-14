@@ -96,6 +96,9 @@ export const getExplore = () =>
   }>
 export const setArchived = (files: string[], archived: boolean) =>
   call(`${PHOTOS}.set_archived`, { files, archived })
+export const getLibraryFolder = () => call(`${PHOTOS}.library_folder`) as Promise<Record<string, unknown>>
+export const saveToLibrary = (files: string[]) =>
+  call(`${PHOTOS}.save_to_library`, { files }) as Promise<string[]>
 export const getUploadFolder = () => call(`${PHOTOS}.get_upload_folder`) as Promise<string>
 
 export const ALBUM_PHOTOS = `${ALBUMS}.album_photos`

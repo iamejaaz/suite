@@ -61,6 +61,7 @@
     <Lightbox />
     <AlbumPicker />
     <MovieDialog />
+    <LibraryShareDialog />
     <KeyboardShortcutsDialog v-model:open="showShortcuts" />
     <CollageDialog />
   </FrappeUIProvider>
@@ -91,6 +92,7 @@ import { useSessionStore } from '@/boot/session'
 import { setupTheme } from '@/utils/setupTheme'
 import AlbumPicker from '../components/AlbumPicker.vue'
 import CollageDialog from '../components/CollageDialog.vue'
+import LibraryShareDialog from '../components/LibraryShareDialog.vue'
 import MovieDialog from '../components/MovieDialog.vue'
 import Lightbox from '../components/Lightbox.vue'
 import PhotosSidebar from '../components/PhotosSidebar.vue'

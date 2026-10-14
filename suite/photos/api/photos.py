@@ -1,5 +1,8 @@
 import json
 import re
+import shutil
+import tempfile
+from pathlib import Path
 
 import frappe
 from pypika import Criterion, CustomFunction, Order
@@ -347,6 +350,38 @@ def get_upload_folder():
         "name",
     )
     return folder or create_folder(UPLOAD_FOLDER, home.name).name
+
+
+@frappe.whitelist()
+def library_folder():
+    name = get_upload_folder()
+    folder = frappe.db.get_value("File", name, ["name", "file_name", "owner"], as_dict=True)
+    return {**folder, "is_folder": 1, "write": 1, "upload": 1}
+
+
+@frappe.whitelist()
+def save_to_library(files: list[str] | str):
+    from suite.drive.utils.files import FileManager, storage_key
+    from suite.photos.library import add_file
+
+    files = _as_list(files)
+    user = frappe.session.user
+    saved = []
+    for name in files:
+        if not user_has_permission(name, "read"):
+            frappe.throw("You don't have access to one of these photos.", frappe.PermissionError)
+        file = frappe.db.get_value(
+            "File", name, ["file_name", "file_url", "owner", "is_folder"], as_dict=True
+        )
+        if file.is_folder or file.owner == user:
+            continue
+        taken_on = frappe.db.get_value("Photo Metadata", name, "taken_on") or frappe.utils.now_datetime()
+        source = FileManager().site_folder / storage_key(file.file_url)
+        with tempfile.TemporaryDirectory() as folder:
+            copy = Path(folder) / file.file_name
+            shutil.copyfile(source, copy)
+            saved.append(add_file(copy, user, taken_on))
+    return saved
 
 
 @frappe.whitelist(allow_guest=True)

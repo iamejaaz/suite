@@ -66,7 +66,7 @@ import photosLogo from '@/assets/app-logos/photos.svg'
 import { useCurrentUser, useSessionStore } from '@/boot/session'
 import { useAppSwitcher } from '@/composables/useAppSwitcher'
 import { switchTheme, themeMode } from '@/utils/setupTheme'
-import { albums, sharedAlbums, sharingSeen } from '../store'
+import { albums, libraryShare, sharedAlbums, sharingSeen } from '../store'
 
 const route = useRoute()
 const collapsed = ref<boolean | null>(null)
@@ -110,6 +110,7 @@ const menuItems = computed(() => [
     hideLabel: true,
     options: [
       appsMenu.value,
+      { label: __('Share your library'), icon: 'lucide-users', onClick: () => (libraryShare.open = true) },
       {
         label: __('Theme'),
         icon: LucideSunMoon,
