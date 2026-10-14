@@ -13,7 +13,8 @@
   "camera",
   "latitude",
   "longitude",
-  "phash"
+  "phash",
+  "faces_scanned"
  ],
  "fields": [
   {
@@ -70,10 +71,15 @@
    "label": "Perceptual Hash",
    "length": 16,
    "search_index": 1
+  },
+  {
+   "fieldname": "faces_scanned",
+   "fieldtype": "Check",
+   "label": "Faces Scanned"
   }
  ],
  "links": [],
- "modified": "2026-10-14 18:00:00.000000",
+ "modified": "2026-10-14 19:00:00.000000",
  "modified_by": "Administrator",
  "module": "Photos",
  "name": "Photo Metadata",

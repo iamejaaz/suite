@@ -158,6 +158,22 @@
               />
             </dl>
           </section>
+          <section v-if="photoPeople.length">
+            <div class="mb-2 text-sm font-medium text-ink-gray-5">{{ __('People') }}</div>
+            <div class="flex flex-wrap gap-3">
+              <router-link
+                v-for="entry in photoPeople"
+                :key="entry.face"
+                :to="{ name: 'photos-person', params: { person: entry.person } }"
+                class="flex w-16 flex-col items-center gap-1 text-center"
+              >
+                <FaceAvatar :face="entry.face" class="size-12" />
+                <span class="w-full truncate text-xs text-ink-gray-7">{{
+                  entry.person_name || __('Add a name')
+                }}</span>
+              </router-link>
+            </div>
+          </section>
           <section v-if="details.folder">
             <div class="mb-2 text-sm font-medium text-ink-gray-5">
               {{ __('In Drive') }}
@@ -236,6 +252,7 @@ import {
   contentUrl,
   downloadUrl,
   getDetails,
+  getPhotoPeople,
   isVideo,
   streamUrl,
   thumbnailUrl,
@@ -253,6 +270,7 @@ import {
   trash,
 } from '../store'
 import InfoRow from './InfoRow.vue'
+import FaceAvatar from './FaceAvatar.vue'
 import PhotoEditor from './PhotoEditor.vue'
 
 const router = useRouter()
@@ -261,6 +279,7 @@ const rows = computed(() => feed.value?.feed.rows ?? [])
 const photo = computed(() => rows.value[lightbox.index])
 const loaded = ref(false)
 const editing = ref(false)
+const photoPeople = ref<{ face: string; person: string; person_name: string | null }[]>([])
 const loggedIn = computed(() => useSessionStore().isLoggedIn)
 const albumName = computed(() =>
   feed.value?.feed.method === ALBUM_PHOTOS ? String(feed.value.feed.params.album) : null,
@@ -314,8 +333,14 @@ watch(
     details.value = null
     if (!name) return
     if (lightbox.index >= rows.value.length - 3) feed.value?.loadMore()
+    photoPeople.value = []
     const result = await getDetails(name)
-    if (photo.value?.name === name) details.value = result
+    if (photo.value?.name !== name) return
+    details.value = result
+    if (result.folder && loggedIn.value) {
+      const found = await getPhotoPeople(name).catch(() => [])
+      if (photo.value?.name === name) photoPeople.value = found
+    }
   },
   { immediate: true },
 )

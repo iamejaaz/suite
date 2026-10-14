@@ -1,6 +1,33 @@
 <template>
   <PhotosHeader :title="__('Explore')" searchable hide-upload />
   <div class="flex flex-col gap-8 p-3 sm:p-5">
+    <section v-if="people.length">
+      <div class="mb-3 flex items-center justify-between">
+        <h2 class="text-lg font-semibold text-ink-gray-9">{{ __('People') }}</h2>
+        <router-link :to="{ name: 'photos-people' }" class="text-base text-ink-gray-6 hover:text-ink-gray-9">
+          {{ __('View all') }}
+        </router-link>
+      </div>
+      <div class="flex gap-4 overflow-x-auto pb-1">
+        <router-link
+          v-for="person in people.slice(0, 12)"
+          :key="person.name"
+          :to="{ name: 'photos-person', params: { person: person.name } }"
+          class="group flex w-24 shrink-0 flex-col items-center gap-1.5 text-center"
+        >
+          <FaceAvatar
+            :face="person.cover_face"
+            class="size-24 transition-transform duration-300 group-hover:scale-105"
+          />
+          <span
+            class="w-full truncate text-sm"
+            :class="person.person_name ? 'text-ink-gray-8' : 'text-ink-gray-5'"
+          >
+            {{ person.person_name || __('Add a name') }}
+          </span>
+        </router-link>
+      </div>
+    </section>
     <section>
       <h2 class="mb-3 text-lg font-semibold text-ink-gray-9">{{ __('Places') }}</h2>
       <div v-if="data?.places.length" class="h-80 sm:h-[420px]">
@@ -67,7 +94,8 @@ import { usePageMeta } from 'frappe-ui'
 import LucidePlay from '~icons/lucide/play'
 
 import { appPageMeta } from '@/utils/documentTitle'
-import { type Place, getExplore, getPlaces, thumbnailUrl } from '../api'
+import { type Person, type Place, getExplore, getPeople, getPlaces, thumbnailUrl } from '../api'
+import FaceAvatar from '../components/FaceAvatar.vue'
 import PhotosHeader from '../components/PhotosHeader.vue'
 import PlacesMap from '../components/PlacesMap.vue'
 import { itemCount } from '../utils'
@@ -76,6 +104,8 @@ const data = ref<Awaited<ReturnType<typeof getExplore>>>()
 const allPlaces = ref<Place[]>([])
 getExplore().then((result) => (data.value = result))
 getPlaces().then((result) => (allPlaces.value = result))
+const people = ref<Person[]>([])
+getPeople().then((result) => (people.value = result.people))
 
 usePageMeta(() => appPageMeta(__('Explore'), 'Photos'))
 </script>

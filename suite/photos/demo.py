@@ -8,7 +8,7 @@ from pathlib import Path
 import frappe
 import mimemapper
 import requests
-from PIL import Image
+from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageOps
 
 from suite.drive.api.files import get_upload_path
 from suite.drive.utils import create_drive_file, get_file_type, get_new_file_name, update_file_size
@@ -40,6 +40,9 @@ TRIPS = [
     ("newyork", (40.73, -73.99), (2024, 10, 12), 4, "admin", 7),
 ]
 PICSUM = "https://picsum.photos"
+GENERATED_FACE = "https://thispersondoesnotexist.com/random-person.jpeg"
+PEOPLE_NAMES = ["Alex", "Sam", "Jordan", "Robin"]
+GROUPS = [(0, 2, 3), (1, 4), (2, 5, 0)]
 
 
 def load(images_dir=None, count=80):
@@ -67,6 +70,7 @@ def load(images_dir=None, count=80):
             _video(frame, video, taken)
             uploaded[trip].append(_save(video, owners["admin"], taken))
         _albums(uploaded, owners)
+        _people(sources, work, owners["admin"], today)
         frappe.db.commit()
         print(f"Loaded {sum(len(v) for v in uploaded.values())} photos and videos for 4 people.")
     finally:
@@ -238,3 +242,70 @@ def _albums(uploaded, owners):
     frappe.set_user(rahul)
     tokyo = album_api.create_album("Tokyo in spring", uploaded["tokyo"])
     album_api.update_access(tokyo, "$GENERAL", read=1)
+
+
+def _people(sources, work, owner, today):
+    from suite.photos import faces
+
+    if not faces.available():
+        print("Skipping people: run `bench photos-setup-faces` first.")
+        return
+    print("Downloading 6 generated faces (people who do not exist)")
+    portraits = []
+    for index in range(6):
+        response = requests.get(
+            f"{GENERATED_FACE}?{index}", headers={"User-Agent": "Mozilla/5.0"}, timeout=60
+        )
+        if response.ok and response.headers.get("content-type", "").startswith("image/"):
+            path = work / f"face_{index}.jpg"
+            path.write_bytes(response.content)
+            portraits.append(Image.open(path).convert("RGB"))
+    if len(portraits) < 2:
+        print("Could not download faces, skipping people.")
+        return
+
+    shots = [([index], k) for index in range(len(portraits)) for k in range(4)]
+    shots += [([i for i in group if i < len(portraits)], 0) for group in GROUPS]
+    files, solo = [], {}
+    for number, (people, _) in enumerate(shots):
+        background = Image.open(sources[(number * 3) % len(sources)]).convert("RGB")
+        for position, index in enumerate(people):
+            _place(background, portraits[index], (position + 0.5) / len(people), len(people) > 1)
+        taken = today - datetime.timedelta(days=random.randint(5, 700), hours=random.randint(0, 9))
+        source = work / f"people_{number:02}.jpg"
+        background.save(source, quality=88)
+        target = work / f"PXL_{taken:%Y%m%d_%H%M%S}.jpg"
+        _with_exif(source, target, taken, None, CAMERAS[1])
+        name = _save(target, owner, taken)
+        files.append(name)
+        if len(people) == 1:
+            solo.setdefault(people[0], []).append(name)
+
+    frappe.set_user(owner)
+    album_api.create_album("Friends and family", files)
+    for index, person_name in enumerate(PEOPLE_NAMES):
+        people = frappe.get_all(
+            "Photo Face", filters={"file": ["in", solo.get(index, []) or [""]]}, pluck="person"
+        )
+        if people:
+            person = max(set(people), key=people.count)
+            frappe.db.set_value("Photo Person", person, "person_name", person_name)
+    frappe.db.commit()
+
+
+def _place(background, portrait, center, group):
+    scale = random.uniform(0.4, 0.55) if group else random.uniform(0.45, 0.75)
+    size = int(background.height * scale)
+    face = portrait.resize((size, size))
+    if random.random() < 0.5:
+        face = ImageOps.mirror(face)
+    face = ImageEnhance.Brightness(face).enhance(random.uniform(0.85, 1.15))
+    face = face.rotate(random.uniform(-8, 8), resample=Image.BICUBIC)
+    mask = Image.new("L", face.size, 0)
+    ImageDraw.Draw(mask).ellipse((size * 0.12, size * 0.02, size * 0.88, size * 1.1), fill=255)
+    mask = mask.filter(ImageFilter.GaussianBlur(size * 0.04))
+    if not group:
+        center = random.uniform(0.35, 0.65)
+    background.paste(
+        face, (int(center * background.width - size / 2), background.height - int(size * 0.95)), mask
+    )

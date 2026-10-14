@@ -50,6 +50,7 @@ import LucideBookImage from '~icons/lucide/book-image'
 import LucideCompass from '~icons/lucide/compass'
 import LucideCopy from '~icons/lucide/copy'
 import LucideTrash2 from '~icons/lucide/trash-2'
+import LucideUsersRound from '~icons/lucide/users-round'
 import LucideUsers from '~icons/lucide/users'
 import LucideCheck from '~icons/lucide/check'
 import LucideHardDrive from '~icons/lucide/hard-drive'
@@ -84,6 +85,7 @@ const item = (label: string, icon: Component, name: string, suffix?: string) => 
 const mainItems = computed(() => [
   item(__('Photos'), LucideImages, 'photos-home'),
   item(__('Explore'), LucideCompass, 'photos-explore'),
+  item(__('People'), LucideUsersRound, 'photos-people'),
   item(__('Sharing'), LucideUsers, 'photos-sharing', hasNewShares.value ? '●' : undefined),
 ])
 const libraryItems = computed(() => [

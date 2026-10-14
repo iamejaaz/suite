@@ -67,6 +67,7 @@ import LucideSearch from '~icons/lucide/search'
 import LucideStar from '~icons/lucide/star'
 import LucideTrash2 from '~icons/lucide/trash-2'
 import LucideUpload from '~icons/lucide/upload'
+import LucideUserX from '~icons/lucide/user-x'
 import LucideX from '~icons/lucide/x'
 
 import { useSessionStore } from '@/boot/session'
@@ -87,7 +88,7 @@ import {
   uploadPhotos,
 } from '../store'
 
-type Mode = 'library' | 'album' | 'archive' | 'trash'
+type Mode = 'library' | 'album' | 'archive' | 'trash' | 'person'
 interface Action {
   label: string
   icon: Component
@@ -99,7 +100,11 @@ const props = withDefaults(
   defineProps<{ title?: string; mode?: Mode; album?: Album; hideUpload?: boolean; searchable?: boolean }>(),
   { mode: 'library' },
 )
-const emit = defineEmits<{ 'remove-from-album': [files: string[]]; 'set-cover': [file: string] }>()
+const emit = defineEmits<{
+  'remove-from-album': [files: string[]]
+  'set-cover': [file: string]
+  'remove-from-person': [files: string[]]
+}>()
 
 const route = useRoute()
 const router = useRouter()
@@ -132,6 +137,16 @@ const actions = computed<Action[]>(() => {
         icon: LucideTrash2,
         keepSelection: true,
         run: () => (confirmDelete.value = true),
+      },
+    ]
+  if (props.mode === 'person')
+    return [
+      addToAlbum,
+      save,
+      {
+        label: __('Not this person'),
+        icon: LucideUserX,
+        run: (names) => emit('remove-from-person', names),
       },
     ]
   if (props.mode === 'archive')

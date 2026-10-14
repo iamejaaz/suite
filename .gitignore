@@ -38,3 +38,6 @@ stalwart-cli
 *.swo
 .claude/
 .vscode
+
+# Photos face models, fetched by `bench photos-setup-faces`
+/suite/photos/models/

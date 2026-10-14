@@ -15,6 +15,7 @@ from suite.photos.metadata import enqueue_missing, file_hash
 File = frappe.qb.DocType("File")
 Metadata = frappe.qb.DocType("Photo Metadata")
 Archive = frappe.qb.DocType("Photo Archive")
+Face = frappe.qb.DocType("Photo Face")
 Year = CustomFunction("YEAR", ["date"])
 Month = CustomFunction("MONTH", ["date"])
 DayOfYear = CustomFunction("DAYOFYEAR", ["date"])
@@ -102,7 +103,18 @@ def _shared_folders():
 
 
 def _apply_search(query, search):
-    for token in (search or "").lower().split():
+    search = (search or "").lower()
+    for person, name in frappe.get_all(
+        "Photo Person",
+        filters={"owner": frappe.session.user, "person_name": ["is", "set"]},
+        fields=["name", "person_name"],
+        as_list=True,
+    ):
+        if name.lower() in search:
+            faces = frappe.qb.from_(Face).select(Face.file).where(Face.person == person)
+            query = query.where(File.name.isin(faces))
+            search = search.replace(name.lower(), " ")
+    for token in search.split():
         if re.fullmatch(r"(19|20)\d\d", token):
             query = query.where(Year(taken) == int(token))
         elif month := next(

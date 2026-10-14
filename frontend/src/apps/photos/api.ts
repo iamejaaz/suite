@@ -73,7 +73,7 @@ export const isVideo = (photo: Photo) => photo.mime_type?.startsWith('video/')
 export const fetchPage = (method: string, params: Record<string, unknown>) =>
   call(method.includes('.') ? method : `${PHOTOS}.${method}`, params) as Promise<Page>
 
-export const getDetails = (name: string) => call(`${PHOTOS}.get_details`, { name })
+export const getDetails = (name: string) => call(`${PHOTOS}.get_details`, { name }) as Promise<any>
 export const getMemories = () => call(`${PHOTOS}.memories`) as Promise<Memory[]>
 export const getPlaces = () => call(`${PHOTOS}.places`) as Promise<Place[]>
 export const getMonths = () => call(`${PHOTOS}.months`) as Promise<MonthCount[]>
@@ -116,6 +116,35 @@ export const addComment = (album: string, content: string, file?: string) =>
 export const toggleLike = (album: string, file?: string) =>
   call(`${ALBUMS}.toggle_like`, { album, file }) as Promise<boolean>
 export const deleteActivity = (name: string) => call(`${ALBUMS}.delete_activity`, { name })
+export interface Person {
+  name: string
+  person_name: string | null
+  cover_face: string
+  face_count: number
+  hidden: number
+}
+const PEOPLE = 'suite.photos.api.people'
+export const PERSON_PHOTOS = `${PEOPLE}.person_photos`
+export const faceUrl = (face: string) => `/api/method/${PEOPLE}.face_thumbnail?face=${face}`
+export const getPeople = (includeHidden = false) =>
+  call(`${PEOPLE}.people`, { include_hidden: includeHidden }) as Promise<{
+    enabled: boolean
+    people: Person[]
+  }>
+export const getPerson = (person: string) => call(`${PEOPLE}.person`, { person }) as Promise<Person>
+export const getPhotoPeople = (file: string) =>
+  call(`${PEOPLE}.photo_people`, { file }) as Promise<
+    { face: string; person: string; person_name: string | null }[]
+  >
+export const renamePerson = (person: string, personName: string) =>
+  call(`${PEOPLE}.rename_person`, { person, person_name: personName })
+export const setPersonHidden = (person: string, hidden: boolean) =>
+  call(`${PEOPLE}.set_hidden`, { person, hidden })
+export const mergePeople = (target: string, sources: string[]) =>
+  call(`${PEOPLE}.merge_people`, { target, sources })
+export const removePhotosFromPerson = (person: string, files: string[]) =>
+  call(`${PEOPLE}.remove_photos`, { person, files })
+
 export const ALBUM_SHARING = {
   list: `${ALBUMS}.get_shared_with_list`,
   update: `${ALBUMS}.update_access`,

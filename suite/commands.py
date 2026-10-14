@@ -20,4 +20,26 @@ def photos_demo_data(context, images_dir=None, count=80):
         frappe.destroy()
 
 
-commands = [photos_demo_data]
+@click.command("photos-setup-faces")
+@click.option("--scan", is_flag=True, help="Also scan existing photos for faces")
+@pass_context
+def photos_setup_faces(context, scan=False):
+    "Download the face models used by Photos and optionally scan existing photos"
+    import frappe
+
+    frappe.init(site=get_site(context))
+    frappe.connect()
+    try:
+        from suite.photos import faces
+
+        faces.setup_models()
+        if not faces.available():
+            print("Install opencv-python-headless to turn on faces: bench pip install opencv-python-headless")
+            return
+        if scan:
+            faces.scan_all()
+    finally:
+        frappe.destroy()
+
+
+commands = [photos_demo_data, photos_setup_faces]
