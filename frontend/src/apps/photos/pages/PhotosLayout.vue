@@ -60,6 +60,7 @@
     </div>
     <Lightbox />
     <AlbumPicker />
+    <KeyboardShortcutsDialog v-model:open="showShortcuts" />
     <CollageDialog />
   </FrappeUIProvider>
 </template>
@@ -68,7 +69,15 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useMediaQuery } from '@vueuse/core'
-import { Button, DesktopShell, FrappeUIProvider, MobileShell, toast } from 'frappe-ui'
+import {
+  Button,
+  DesktopShell,
+  FrappeUIProvider,
+  KeyboardShortcutsDialog,
+  MobileShell,
+  toast,
+  useKeyboardShortcut,
+} from 'frappe-ui'
 import LucideBookImage from '~icons/lucide/book-image'
 import LucideImages from '~icons/lucide/images'
 import LucideCompass from '~icons/lucide/compass'
@@ -83,7 +92,14 @@ import AlbumPicker from '../components/AlbumPicker.vue'
 import CollageDialog from '../components/CollageDialog.vue'
 import Lightbox from '../components/Lightbox.vue'
 import PhotosSidebar from '../components/PhotosSidebar.vue'
-import { clearSelection, lightbox, loadAlbums, uploadPhotos } from '../store'
+import {
+  changeZoom,
+  clearSelection,
+  lightbox,
+  loadAlbums,
+  selection,
+  uploadPhotos,
+} from '../store'
 
 setupTheme()
 const loggedIn = computed(() => useSessionStore().isLoggedIn)
@@ -132,12 +148,48 @@ watch(
   },
 )
 
-function onKey(event: KeyboardEvent) {
-  if (event.key === 'Escape' && !lightbox.open) clearSelection()
-}
-window.addEventListener('keydown', onKey)
+const showShortcuts = ref(false)
+const browsing = () => loggedIn.value && !lightbox.open
+useKeyboardShortcut([
+  {
+    combo: 'Shift+Slash',
+    description: __('Keyboard shortcuts'),
+    group: __('General'),
+    enabled: () => loggedIn.value,
+    allowInDialog: true,
+    handler: () => (showShortcuts.value = !showShortcuts.value),
+  },
+  {
+    combo: 'Slash',
+    description: __('Search'),
+    group: __('General'),
+    enabled: browsing,
+    handler: () => document.querySelector<HTMLInputElement>('[data-photos-search] input')?.focus(),
+  },
+  {
+    combo: 'Equal',
+    description: __('Bigger photos'),
+    group: __('Grid'),
+    enabled: browsing,
+    handler: () => changeZoom(0.1),
+  },
+  {
+    combo: 'Minus',
+    description: __('Smaller photos'),
+    group: __('Grid'),
+    enabled: browsing,
+    handler: () => changeZoom(-0.1),
+  },
+  {
+    combo: 'Escape',
+    description: __('Clear selection'),
+    group: __('Grid'),
+    enabled: () => browsing() && selection.size > 0,
+    handler: clearSelection,
+  },
+])
+
 onBeforeUnmount(() => {
-  window.removeEventListener('keydown', onKey)
   clearSelection()
   lightbox.open = false
 })

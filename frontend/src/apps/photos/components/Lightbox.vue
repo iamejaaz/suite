@@ -244,7 +244,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { LoadingIndicator, Tooltip } from 'frappe-ui'
+import { LoadingIndicator, Tooltip, useKeyboardShortcut } from 'frappe-ui'
 import dayjs from 'dayjs'
 import LucideAperture from '~icons/lucide/aperture'
 import LucideArchive from '~icons/lucide/archive'
@@ -438,27 +438,56 @@ async function removeCurrent() {
   if (photo.value) await trash([photo.value.name])
 }
 
-function onKey(event: KeyboardEvent) {
-  if (!lightbox.open) return
-  const target = event.target as HTMLElement
-  if (editing.value || target.closest('input, textarea, [role="dialog"]')) return
-  if (lightbox.slideshow) {
-    lightbox.slideshow = false
-    event.preventDefault()
-    return
-  }
-  if (event.key === 'Escape') close()
-  else if (event.key === 'ArrowLeft') go(-1)
-  else if (event.key === 'ArrowRight') go(1)
-  else if (event.key === 'i') lightbox.showInfo = !lightbox.showInfo
-  else if (event.key === 'f' && photo.value && inDrive.value) toggleFavourite([photo.value])
-  else return
+function stopSlideshow(event: KeyboardEvent) {
+  if (!lightbox.open || !lightbox.slideshow) return
+  lightbox.slideshow = false
   event.preventDefault()
+  event.stopImmediatePropagation()
 }
 
-onMounted(() => window.addEventListener('keydown', onKey))
+const viewing = () => lightbox.open && !lightbox.slideshow && !editing.value
+useKeyboardShortcut([
+  {
+    combo: 'ArrowLeft',
+    description: __('Previous photo'),
+    group: __('Viewer'),
+    enabled: viewing,
+    handler: () => go(-1),
+  },
+  {
+    combo: 'ArrowRight',
+    description: __('Next photo'),
+    group: __('Viewer'),
+    enabled: viewing,
+    handler: () => go(1),
+  },
+  {
+    combo: 'I',
+    description: __('Show or hide info'),
+    group: __('Viewer'),
+    enabled: viewing,
+    handler: () => (lightbox.showInfo = !lightbox.showInfo),
+  },
+  {
+    combo: 'F',
+    description: __('Favourite'),
+    group: __('Viewer'),
+    enabled: () => viewing() && inDrive.value,
+    handler: () => photo.value && toggleFavourite([photo.value]),
+  },
+  {
+    combo: 'S',
+    description: __('Start slideshow'),
+    group: __('Viewer'),
+    enabled: viewing,
+    handler: () => (lightbox.slideshow = true),
+  },
+  { combo: 'Escape', description: __('Close'), group: __('Viewer'), enabled: viewing, handler: close },
+])
+
+onMounted(() => window.addEventListener('keydown', stopSlideshow, { capture: true }))
 onBeforeUnmount(() => {
-  window.removeEventListener('keydown', onKey)
+  window.removeEventListener('keydown', stopSlideshow, { capture: true })
   clearTimeout(slideTimer)
 })
 </script>
