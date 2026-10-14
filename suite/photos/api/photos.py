@@ -167,6 +167,48 @@ def timeline(
 
 
 @frappe.whitelist()
+def folders():
+    rows = (
+        media_base(archived=None)
+        .select(File.folder, fn.Count(File.name).as_("count"), fn.Max(taken).as_("latest"))
+        .groupby(File.folder)
+        .orderby(fn.Max(taken), order=Order.desc)
+        .run(as_dict=True)
+    )
+    home = get_user_folder().name
+    result = []
+    for row in rows:
+        if not row.folder or not user_has_permission(row.folder, "read"):
+            continue
+        folder = frappe.db.get_value("File", row.folder, ["file_name", "folder", "owner"], as_dict=True)
+        cover = (
+            media_query(archived=None)
+            .where(File.folder == row.folder)
+            .limit(1)
+            .select(File.name)
+            .run(as_dict=True)
+        )
+        result.append(
+            {
+                "name": row.folder,
+                "title": "Home" if row.folder == home else folder.file_name,
+                "owner": folder.owner,
+                "owner_name": frappe.utils.get_fullname(folder.owner),
+                "count": row.count,
+                "cover": cover[0].name if cover else None,
+            }
+        )
+    return result
+
+
+@frappe.whitelist()
+def folder_photos(folder: str, start: int = 0, limit: int | None = None):
+    if not user_has_permission(folder, "read"):
+        frappe.throw("You don't have access.", frappe.PermissionError)
+    return page(media_query(archived=None).where(File.folder == folder), start, limit)
+
+
+@frappe.whitelist()
 def favourites(start: int = 0, limit: int | None = None):
     return page(media_query(), start, limit, favourites_only=True)
 

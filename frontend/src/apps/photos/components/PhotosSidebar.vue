@@ -53,6 +53,7 @@ import LucideTrash2 from '~icons/lucide/trash-2'
 import LucideUsersRound from '~icons/lucide/users-round'
 import LucideUsers from '~icons/lucide/users'
 import LucideCheck from '~icons/lucide/check'
+import LucideFolder from '~icons/lucide/folder'
 import LucideHardDrive from '~icons/lucide/hard-drive'
 import LucideImages from '~icons/lucide/images'
 import LucideMonitor from '~icons/lucide/monitor'
@@ -91,6 +92,7 @@ const mainItems = computed(() => [
 const libraryItems = computed(() => [
   item(__('Favourites'), LucideStar, 'photos-favourites'),
   item(__('Albums'), LucideBookImage, 'photos-albums'),
+  item(__('Folders'), LucideFolder, 'photos-folders'),
   item(__('Archive'), LucideArchive, 'photos-archive'),
   item(__('Duplicates'), LucideCopy, 'photos-duplicates'),
   item(__('Trash'), LucideTrash2, 'photos-trash'),

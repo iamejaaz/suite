@@ -77,6 +77,15 @@ export const getDetails = (name: string) => call(`${PHOTOS}.get_details`, { name
 export const getMemories = () => call(`${PHOTOS}.memories`) as Promise<Memory[]>
 export const getPlaces = () => call(`${PHOTOS}.places`) as Promise<Place[]>
 export const getMonths = () => call(`${PHOTOS}.months`) as Promise<MonthCount[]>
+export interface Folder {
+  name: string
+  title: string
+  owner: string
+  owner_name: string
+  count: number
+  cover: string | null
+}
+export const getFolders = () => call(`${PHOTOS}.folders`) as Promise<Folder[]>
 export const getExplore = () =>
   call(`${PHOTOS}.explore`) as Promise<{
     places: Place[]
