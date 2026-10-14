@@ -1,6 +1,6 @@
 <template>
   <div v-if="memories.length" class="px-3 pt-4 sm:px-5">
-    <div class="flex gap-3 overflow-x-auto pb-1">
+    <div class="flex gap-3 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       <button
         v-for="memory in memories"
         :key="memory.year"

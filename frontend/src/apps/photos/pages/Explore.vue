@@ -8,7 +8,7 @@
           {{ __('View all') }}
         </router-link>
       </div>
-      <div class="flex gap-4 overflow-x-auto pb-1">
+      <div class="flex gap-4 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <router-link
           v-for="person in people.slice(0, 12)"
           :key="person.name"
