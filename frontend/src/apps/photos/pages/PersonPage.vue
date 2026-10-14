@@ -64,7 +64,7 @@
           />
           <span
             v-if="mergePicks.has(other.name)"
-            class="absolute right-0 top-0 flex size-5 items-center justify-center rounded-full bg-surface-gray-7 text-ink-white"
+            class="absolute right-0 top-0 flex size-5 items-center justify-center rounded-full bg-surface-gray-10 text-ink-base"
           >
             <LucideCheck class="size-3" />
           </span>

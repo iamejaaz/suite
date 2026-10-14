@@ -32,7 +32,7 @@
         :style="{ top: `${hover.top * 100}%` }"
       >
         <span
-          class="mr-1 whitespace-nowrap rounded-full bg-surface-gray-7 px-2 py-0.5 text-xs font-medium text-ink-white shadow"
+          class="mr-1 whitespace-nowrap rounded-full bg-surface-gray-10 px-2 py-0.5 text-xs font-medium text-ink-base shadow"
         >
           {{
             dayjs()
