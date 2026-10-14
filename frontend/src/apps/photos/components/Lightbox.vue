@@ -15,6 +15,12 @@
                 <LucidePlay class="size-5" />
               </button>
             </Tooltip>
+            <Tooltip v-if="albumName && loggedIn" :text="photo.liked ? __('Unlike') : __('Like')">
+              <button class="lightbox-button w-auto gap-1.5 px-3" @click="like">
+                <LucideHeart class="size-5" :class="{ 'fill-current text-ink-red-4': photo.liked }" />
+                <span v-if="photo.likes" class="text-sm">{{ photo.likes }}</span>
+              </button>
+            </Tooltip>
             <Tooltip :text="__('Info')">
               <button
                 class="lightbox-button"
@@ -215,6 +221,7 @@ import LucideFolder from '~icons/lucide/folder'
 import LucideFolderOpen from '~icons/lucide/folder-open'
 import LucideImage from '~icons/lucide/image'
 import LucideImagePlus from '~icons/lucide/image-plus'
+import LucideHeart from '~icons/lucide/heart'
 import LucideInfo from '~icons/lucide/info'
 import LucideMapPin from '~icons/lucide/map-pin'
 import LucidePlay from '~icons/lucide/play'
@@ -223,7 +230,17 @@ import LucideStar from '~icons/lucide/star'
 import LucideTrash2 from '~icons/lucide/trash-2'
 import LucideX from '~icons/lucide/x'
 
-import { contentUrl, downloadUrl, getDetails, isVideo, streamUrl, thumbnailUrl } from '../api'
+import { useSessionStore } from '@/boot/session'
+import {
+  ALBUM_PHOTOS,
+  contentUrl,
+  downloadUrl,
+  getDetails,
+  isVideo,
+  streamUrl,
+  thumbnailUrl,
+  toggleLike,
+} from '../api'
 import {
   activeFeed,
   albums,
@@ -244,6 +261,18 @@ const rows = computed(() => feed.value?.feed.rows ?? [])
 const photo = computed(() => rows.value[lightbox.index])
 const loaded = ref(false)
 const editing = ref(false)
+const loggedIn = computed(() => useSessionStore().isLoggedIn)
+const albumName = computed(() =>
+  feed.value?.feed.method === ALBUM_PHOTOS ? String(feed.value.feed.params.album) : null,
+)
+
+async function like() {
+  if (!photo.value || !albumName.value) return
+  const target = photo.value
+  const liked = await toggleLike(albumName.value, target.name)
+  target.liked = liked
+  target.likes = (target.likes ?? 0) + (liked ? 1 : -1)
+}
 const details = ref<any>(null)
 
 const meta = computed(() => details.value?.metadata)

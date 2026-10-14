@@ -30,6 +30,15 @@
         <template #prefix><LucideShare2 class="size-4" /></template>
         {{ __('Share') }}
       </Button>
+      <Button
+        v-if="album"
+        variant="ghost"
+        :aria-label="__('Activity')"
+        :class="{ 'bg-surface-gray-3': showActivity }"
+        @click="showActivity = !showActivity"
+      >
+        <template #icon><LucideMessageCircle class="size-4" /></template>
+      </Button>
       <Button v-if="handle.feed.rows.length" variant="ghost" :aria-label="__('Slideshow')" @click="slideshow">
         <template #icon><LucidePlay class="size-4" /></template>
       </Button>
@@ -42,13 +51,24 @@
   </PhotosHeader>
 
   <ErrorMessage v-if="error" class="p-10 text-center" :message="error" />
-  <PhotoGrid
-    v-else
-    :handle="handle"
-    :empty-icon="LucideImagePlus"
-    :empty-title="__('This album is empty')"
-    :empty-text="album?.access?.write ? __('Use Add photos to pick from your library.') : ''"
-  />
+  <div v-else class="flex min-h-full">
+    <PhotoGrid
+      class="min-w-0 flex-1"
+      :handle="handle"
+      :empty-icon="LucideImagePlus"
+      :empty-title="__('This album is empty')"
+      :empty-text="album?.access?.write ? __('Use Add photos to pick from your library.') : ''"
+    />
+    <ActivityPanel
+      v-if="showActivity && album"
+      class="sticky top-0 h-[calc(100vh-3rem)]"
+      :album="album.name"
+      :can-moderate="Boolean(album.access?.owner)"
+      @close="showActivity = false"
+      @open-photo="openPhoto"
+      @changed="handle.reload()"
+    />
+  </div>
 
   <ShareAlbumDialog v-if="album" v-model="sharing" :album="album" @changed="refresh" />
   <AddPhotosDialog v-if="album" v-model="adding" :album="album" @added="handle.reload()" />
@@ -78,6 +98,7 @@ import { Button, Dialog, Dropdown, ErrorMessage, TextInput, toast, usePageMeta }
 import LucideChevronRight from '~icons/lucide/chevron-right'
 import LucideEllipsis from '~icons/lucide/ellipsis'
 import LucideImagePlus from '~icons/lucide/image-plus'
+import LucideMessageCircle from '~icons/lucide/message-circle'
 import LucidePlay from '~icons/lucide/play'
 import LucideShare2 from '~icons/lucide/share-2'
 
@@ -93,6 +114,7 @@ import {
   renameAlbum,
   setCover,
 } from '../api'
+import ActivityPanel from '../components/ActivityPanel.vue'
 import AddPhotosDialog from '../components/AddPhotosDialog.vue'
 import PhotoGrid from '../components/PhotoGrid.vue'
 import PhotosHeader from '../components/PhotosHeader.vue'
@@ -111,6 +133,11 @@ const adding = ref(false)
 const renaming = ref(false)
 const deleting = ref(false)
 const title = ref('')
+const showActivity = ref(false)
+
+function openPhoto(file: string) {
+  if (handle.feed.rows.some((row) => row.name === file)) openLightbox(handle, file)
+}
 
 async function refresh() {
   try {

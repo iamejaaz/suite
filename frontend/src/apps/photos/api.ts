@@ -16,6 +16,8 @@ export interface Photo {
   is_favourite: string | null
   owner: string
   added_by?: string
+  likes?: number
+  liked?: boolean
   write?: number
 }
 
@@ -98,6 +100,22 @@ export const leaveAlbum = (album: string) => call(`${ALBUMS}.leave_album`, { alb
 export const addToAlbum = (album: string, files: string[]) => call(`${ALBUMS}.add_to_album`, { album, files })
 export const removeFromAlbum = (album: string, files: string[]) =>
   call(`${ALBUMS}.remove_from_album`, { album, files })
+export interface Activity {
+  name: string
+  type: 'Comment' | 'Like'
+  file: string | null
+  content: string | null
+  owner: string
+  full_name: string
+  user_image: string | null
+  creation: string
+}
+export const getActivity = (album: string) => call(`${ALBUMS}.activity`, { album }) as Promise<Activity[]>
+export const addComment = (album: string, content: string, file?: string) =>
+  call(`${ALBUMS}.add_comment`, { album, content, file })
+export const toggleLike = (album: string, file?: string) =>
+  call(`${ALBUMS}.toggle_like`, { album, file }) as Promise<boolean>
+export const deleteActivity = (name: string) => call(`${ALBUMS}.delete_activity`, { name })
 export const ALBUM_SHARING = {
   list: `${ALBUMS}.get_shared_with_list`,
   update: `${ALBUMS}.update_access`,

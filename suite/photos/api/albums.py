@@ -158,7 +158,14 @@ def album_photos(album: str, start: int = 0, limit: int | None = None):
         .offset(start)
     )
     rows = query.run(as_dict=True)
+    likes = frappe.get_all(
+        "Photo Album Activity",
+        filters={"album": album, "type": "Like", "file": ["in", [row["name"] for row in rows] or [""]]},
+        fields=["file", "owner"],
+    )
     for row in rows:
+        row["likes"] = sum(1 for like in likes if like.file == row["name"])
+        row["liked"] = any(like.file == row["name"] and like.owner == user for like in likes)
         row["file_url"] = None
         row["read"] = 1
         row["write"] = int(user != "Guest" and row["owner"] == user)
@@ -192,6 +199,7 @@ def delete_album(album: str):
     _require(album, "owner")
     frappe.db.delete("Photo Album Item", {"album": album})
     frappe.db.delete("Photo Album Share", {"album": album})
+    frappe.db.delete("Photo Album Activity", {"album": album})
     frappe.delete_doc("Photo Album", album, ignore_permissions=True)
 
 
@@ -216,7 +224,9 @@ def add_to_album(album: str, files: list[str] | str):
 @frappe.whitelist()
 def remove_from_album(album: str, files: list[str] | str):
     _require(album, "write")
-    frappe.db.delete("Photo Album Item", {"album": album, "file": ["in", _as_list(files)]})
+    files = _as_list(files)
+    frappe.db.delete("Photo Album Item", {"album": album, "file": ["in", files]})
+    frappe.db.delete("Photo Album Activity", {"album": album, "file": ["in", files]})
 
 
 @frappe.whitelist()
@@ -291,3 +301,95 @@ def update_access(
 
 def _as_list(value):
     return json.loads(value) if isinstance(value, str) else value
+
+
+@frappe.whitelist(allow_guest=True)
+def activity(album: str):
+    _require(album, "read")
+    rows = frappe.get_all(
+        "Photo Album Activity",
+        filters={"album": album},
+        fields=["name", "type", "file", "content", "owner", "creation"],
+        order_by="creation asc",
+    )
+    users = {
+        user.name: user
+        for user in frappe.get_all(
+            "User",
+            filters={"name": ["in", list({row.owner for row in rows}) or [""]]},
+            fields=["name", "full_name", "user_image"],
+        )
+    }
+    for row in rows:
+        user = users.get(row.owner) or {}
+        row.full_name = user.get("full_name") or row.owner
+        row.user_image = user.get("user_image")
+    return rows
+
+
+@frappe.whitelist()
+def add_comment(album: str, content: str, file: str | None = None):
+    _require(album, "read")
+    content = (content or "").strip()
+    if not content:
+        frappe.throw("Write something first.")
+    _check_file(album, file)
+    doc = frappe.get_doc(
+        {
+            "doctype": "Photo Album Activity",
+            "album": album,
+            "file": file,
+            "type": "Comment",
+            "content": content,
+        }
+    ).insert(ignore_permissions=True)
+    _broadcast(album)
+    return doc.name
+
+
+@frappe.whitelist()
+def toggle_like(album: str, file: str | None = None):
+    _require(album, "read")
+    _check_file(album, file)
+    filters = {
+        "album": album,
+        "file": file or ["is", "not set"],
+        "type": "Like",
+        "owner": frappe.session.user,
+    }
+    existing = frappe.db.get_value("Photo Album Activity", filters)
+    if existing:
+        frappe.delete_doc("Photo Album Activity", existing, ignore_permissions=True)
+    else:
+        frappe.get_doc(
+            {"doctype": "Photo Album Activity", "album": album, "file": file, "type": "Like"}
+        ).insert(ignore_permissions=True)
+    _broadcast(album)
+    return not existing
+
+
+@frappe.whitelist()
+def delete_activity(name: str):
+    row = frappe.db.get_value("Photo Album Activity", name, ["album", "owner"], as_dict=True)
+    if not row:
+        return
+    if row.owner != frappe.session.user and not album_access(row.album)["owner"]:
+        frappe.throw("Only the author or the album owner can remove this.", frappe.PermissionError)
+    frappe.delete_doc("Photo Album Activity", name, ignore_permissions=True)
+    _broadcast(row.album)
+
+
+def _check_file(album, file):
+    if file and not frappe.db.exists("Photo Album Item", {"album": album, "file": file}):
+        frappe.throw("That photo is not in this album.")
+
+
+def _broadcast(album):
+    owner = frappe.db.get_value("Photo Album", album, "owner")
+    members = frappe.get_all(
+        "Photo Album Share",
+        filters={"album": album, "user": ["like", "%@%"]},
+        pluck="user",
+    )
+    for user in {owner, *members}:
+        frappe.publish_realtime("photos-album-activity", {"album": album}, user=user, after_commit=True)
