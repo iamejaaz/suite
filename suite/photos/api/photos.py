@@ -394,10 +394,11 @@ def duplicates(threshold: int = 4):
     rows = (
         media_base(archived=None)
         .where(File.owner == frappe.session.user)
-        .where(File.mime_type.like("image/%"))
         .select(
             File.name,
             File.file_name,
+            File.mime_type,
+            Metadata.duration,
             File.file_size,
             File.creation,
             Metadata.name.as_("metadata"),
@@ -426,7 +427,7 @@ def duplicates(threshold: int = 4):
     values = [int(row.phash, 16) for row in hashed]
     for i in range(len(hashed)):
         for j in range(i + 1, len(hashed)):
-            if (values[i] ^ values[j]).bit_count() <= int(threshold):
+            if (values[i] ^ values[j]).bit_count() <= int(threshold) and _same_kind(hashed[i], hashed[j]):
                 parent[find(i)] = find(j)
 
     groups = {}
@@ -439,3 +440,10 @@ def duplicates(threshold: int = 4):
         group.sort(key=lambda r: (-(r.width or 0) * (r.height or 0), -(r.file_size or 0), r.creation))
         result.append(group)
     return sorted(result, key=lambda g: g[0].taken, reverse=True)
+
+
+def _same_kind(a, b):
+    a_video, b_video = a.mime_type.startswith("video/"), b.mime_type.startswith("video/")
+    if a_video != b_video:
+        return False
+    return not a_video or abs((a.duration or 0) - (b.duration or 0)) <= 1

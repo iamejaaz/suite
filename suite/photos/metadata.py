@@ -97,6 +97,7 @@ def _video_metadata(path):
         width, height = stream.width, stream.height
         created = container.metadata.get("creation_time")
         duration = container.duration / 1_000_000 if container.duration else None
+        phash = _video_hash(container, stream, duration)
 
     taken_on = None
     if created:
@@ -104,7 +105,16 @@ def _video_metadata(path):
             taken_on = datetime.fromisoformat(created.replace("Z", "+00:00")).replace(tzinfo=None)
         except ValueError:
             pass
-    return {"width": width, "height": height, "duration": duration, "taken_on": taken_on}
+    return {"width": width, "height": height, "duration": duration, "taken_on": taken_on, "phash": phash}
+
+
+def _video_hash(container, stream, duration):
+    try:
+        container.seek(int((duration or 0) / 2 / stream.time_base), stream=stream)
+        frame = next(container.decode(stream))
+        return image_hash(frame.to_image())
+    except Exception:
+        return None
 
 
 def image_hash(image):
@@ -127,6 +137,13 @@ def file_hash(file_name):
     if not file_url or not path.exists():
         return None
     try:
+        if (frappe.db.get_value("File", file_name, "mime_type") or "").startswith("video/"):
+            import av
+
+            with av.open(str(path)) as container:
+                stream = container.streams.video[0]
+                duration = container.duration / 1_000_000 if container.duration else 0
+                return _video_hash(container, stream, duration)
         with Image.open(path) as image:
             return image_hash(image)
     except Exception:
