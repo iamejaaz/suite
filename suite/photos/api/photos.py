@@ -10,7 +10,7 @@ from suite.drive.api.list import get_query_data
 from suite.drive.api.permissions import get_user_access, user_has_permission
 from suite.drive.utils import STATUS_ACTIVE, STATUS_TRASHED, get_principals, get_user_folder
 from suite.drive.utils.overrides import file_permission_criterion
-from suite.photos.metadata import enqueue_missing
+from suite.photos.metadata import enqueue_missing, file_hash
 
 File = frappe.qb.DocType("File")
 Metadata = frappe.qb.DocType("Photo Metadata")
@@ -300,3 +300,55 @@ def get_details(name: str):
 
 def _as_list(value):
     return json.loads(value) if isinstance(value, str) else value
+
+
+@frappe.whitelist()
+def duplicates(threshold: int = 4):
+    rows = (
+        media_base(archived=None)
+        .where(File.owner == frappe.session.user)
+        .where(File.mime_type.like("image/%"))
+        .select(
+            File.name,
+            File.file_name,
+            File.file_size,
+            File.creation,
+            Metadata.name.as_("metadata"),
+            Metadata.phash,
+            Metadata.width,
+            Metadata.height,
+            taken.as_("taken"),
+        )
+        .run(as_dict=True)
+    )
+    for row in rows:
+        if not row.phash and row.metadata:
+            row.phash = file_hash(row.name)
+            if row.phash:
+                frappe.db.set_value("Photo Metadata", row.metadata, "phash", row.phash, update_modified=False)
+
+    hashed = [row for row in rows if row.phash]
+    parent = list(range(len(hashed)))
+
+    def find(i):
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+
+    values = [int(row.phash, 16) for row in hashed]
+    for i in range(len(hashed)):
+        for j in range(i + 1, len(hashed)):
+            if (values[i] ^ values[j]).bit_count() <= int(threshold):
+                parent[find(i)] = find(j)
+
+    groups = {}
+    for index, row in enumerate(hashed):
+        groups.setdefault(find(index), []).append(row)
+    result = []
+    for group in groups.values():
+        if len(group) < 2:
+            continue
+        group.sort(key=lambda r: (-(r.width or 0) * (r.height or 0), -(r.file_size or 0), r.creation))
+        result.append(group)
+    return sorted(result, key=lambda g: g[0].taken, reverse=True)

@@ -67,6 +67,7 @@ def _image_metadata(path):
     with Image.open(path) as image:
         width, height = image.size
         exif = image.getexif()
+        phash = image_hash(image)
 
     if exif.get(ORIENTATION) in ROTATED_ORIENTATIONS:
         width, height = height, width
@@ -81,6 +82,7 @@ def _image_metadata(path):
         "camera": camera[:140] or None,
         "latitude": latitude,
         "longitude": longitude,
+        "phash": phash,
     }
 
 
@@ -100,6 +102,32 @@ def _video_metadata(path):
         except ValueError:
             pass
     return {"width": width, "height": height, "duration": duration, "taken_on": taken_on}
+
+
+def image_hash(image):
+    from PIL import ImageOps
+
+    small = ImageOps.exif_transpose(image).convert("L").resize((9, 8))
+    pixels = list(small.getdata())
+    bits = 0
+    for row in range(8):
+        for col in range(8):
+            bits = (bits << 1) | (pixels[row * 9 + col] > pixels[row * 9 + col + 1])
+    return f"{bits:016x}"
+
+
+def file_hash(file_name):
+    from PIL import Image
+
+    file_url = frappe.db.get_value("File", file_name, "file_url")
+    path = FileManager().site_folder / storage_key(file_url or "")
+    if not file_url or not path.exists():
+        return None
+    try:
+        with Image.open(path) as image:
+            return image_hash(image)
+    except Exception:
+        return None
 
 
 def _exif_datetime(value):

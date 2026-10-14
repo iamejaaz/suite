@@ -45,6 +45,11 @@ export const routes: RouteRecordRaw[] = [
         props: { kind: 'trash' },
       },
       {
+        path: 'duplicates',
+        name: 'photos-duplicates',
+        component: () => import('@/apps/photos/pages/Duplicates.vue'),
+      },
+      {
         path: 'albums',
         name: 'photos-albums',
         component: () => import('@/apps/photos/pages/Albums.vue'),

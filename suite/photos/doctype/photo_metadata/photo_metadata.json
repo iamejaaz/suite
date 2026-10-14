@@ -12,7 +12,8 @@
   "duration",
   "camera",
   "latitude",
-  "longitude"
+  "longitude",
+  "phash"
  ],
  "fields": [
   {
@@ -62,10 +63,17 @@
    "fieldtype": "Float",
    "label": "Longitude",
    "precision": "6"
+  },
+  {
+   "fieldname": "phash",
+   "fieldtype": "Data",
+   "label": "Perceptual Hash",
+   "length": 16,
+   "search_index": 1
   }
  ],
  "links": [],
- "modified": "2026-10-14 15:00:00.000000",
+ "modified": "2026-10-14 18:00:00.000000",
  "modified_by": "Administrator",
  "module": "Photos",
  "name": "Photo Metadata",

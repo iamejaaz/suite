@@ -48,6 +48,7 @@ import { Sidebar, SidebarCollapseToggle, SidebarHeader, SidebarItem, SidebarSect
 import LucideArchive from '~icons/lucide/archive'
 import LucideBookImage from '~icons/lucide/book-image'
 import LucideCompass from '~icons/lucide/compass'
+import LucideCopy from '~icons/lucide/copy'
 import LucideTrash2 from '~icons/lucide/trash-2'
 import LucideUsers from '~icons/lucide/users'
 import LucideCheck from '~icons/lucide/check'
@@ -89,6 +90,7 @@ const libraryItems = computed(() => [
   item(__('Favourites'), LucideStar, 'photos-favourites'),
   item(__('Albums'), LucideBookImage, 'photos-albums'),
   item(__('Archive'), LucideArchive, 'photos-archive'),
+  item(__('Duplicates'), LucideCopy, 'photos-duplicates'),
   item(__('Trash'), LucideTrash2, 'photos-trash'),
 ])
 
