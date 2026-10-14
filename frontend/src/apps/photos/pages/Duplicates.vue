@@ -40,14 +40,14 @@
           <div class="relative aspect-square overflow-hidden rounded-lg bg-surface-gray-2">
             <img :src="thumbnailUrl(row.name)" class="size-full object-cover" alt="" />
             <span
-              class="absolute left-2 top-2 flex size-5 items-center justify-center rounded-full border-2"
+              class="absolute left-2 top-2 flex size-6 items-center justify-center rounded-full"
               :class="
                 selected.has(row.name)
-                  ? 'border-transparent bg-surface-white text-ink-gray-9'
-                  : 'border-white/90 bg-black/20 text-transparent'
+                  ? 'bg-surface-gray-7 text-ink-white shadow-md ring-2 ring-white'
+                  : 'border-2 border-white bg-black/20 text-transparent shadow-sm'
               "
             >
-              <LucideCheck class="size-3" />
+              <LucideCheck class="size-4" stroke-width="3" />
             </span>
             <Badge
               v-if="position === 0"

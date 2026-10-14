@@ -33,7 +33,6 @@
               v-for="tile in row"
               :key="tile.photo.name"
               class="group/tile relative shrink-0 cursor-pointer overflow-hidden bg-surface-gray-2"
-              :class="selection.has(tile.photo.name) ? 'bg-surface-gray-3' : ''"
               :style="{ width: `${tile.width}px`, height: `${tile.height}px` }"
               @click="onTileClick($event, tile.photo)"
             >
@@ -43,24 +42,28 @@
                 loading="lazy"
                 decoding="async"
                 draggable="false"
-                class="size-full select-none object-cover transition-transform duration-150"
-                :class="selection.has(tile.photo.name) ? 'scale-[0.86] rounded-md' : ''"
+                class="size-full select-none object-cover transition-all duration-150"
+                :class="selection.has(tile.photo.name) ? 'scale-[0.88] rounded-lg' : ''"
               />
               <div
-                class="pointer-events-none absolute inset-x-0 top-0 h-14 bg-gradient-to-b from-black/40 to-transparent opacity-0 transition-opacity group-hover/tile:opacity-100"
+                v-if="!selection.has(tile.photo.name)"
+                class="pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-black/50 to-transparent opacity-0 transition-opacity group-hover/tile:opacity-100"
                 :class="{ '!opacity-100': selection.size }"
               />
               <button
-                class="absolute left-2 top-2 flex size-5 items-center justify-center rounded-full border-2 transition-opacity"
+                class="absolute left-2 top-2 flex size-6 items-center justify-center rounded-full transition-opacity"
                 :class="
                   selection.has(tile.photo.name)
-                    ? 'border-transparent bg-surface-white text-ink-gray-9 opacity-100'
-                    : 'border-white/90 text-transparent opacity-0 group-hover/tile:opacity-100'
+                    ? 'bg-surface-gray-7 text-ink-white opacity-100 shadow-md ring-2 ring-white'
+                    : [
+                        'border-2 border-white bg-black/10 text-transparent shadow-sm hover:bg-black/30 hover:text-white/80',
+                        selection.size ? 'opacity-100' : 'opacity-0 group-hover/tile:opacity-100',
+                      ]
                 "
-                :aria-label="__('Select')"
+                :aria-label="selection.has(tile.photo.name) ? __('Deselect') : __('Select')"
                 @click.stop="toggle(tile.photo, $event)"
               >
-                <LucideCheck class="size-3" />
+                <LucideCheck class="size-4" stroke-width="3" />
               </button>
               <div
                 v-if="isVideo(tile.photo)"

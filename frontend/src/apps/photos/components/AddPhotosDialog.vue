@@ -12,18 +12,18 @@
             :src="thumbnailUrl(photo.name)"
             loading="lazy"
             class="size-full object-cover transition-transform"
-            :class="{ 'scale-[0.86] rounded-md': picked.has(photo.name) }"
+            :class="{ 'scale-[0.88] rounded-lg': picked.has(photo.name) }"
             alt=""
           />
           <span
-            class="absolute left-2 top-2 flex size-5 items-center justify-center rounded-full border-2"
+            class="absolute left-2 top-2 flex size-6 items-center justify-center rounded-full"
             :class="
               picked.has(photo.name)
-                ? 'border-transparent bg-surface-white text-ink-gray-9'
-                : 'border-white/90 text-transparent'
+                ? 'bg-surface-gray-7 text-ink-white shadow-md ring-2 ring-white'
+                : 'border-2 border-white bg-black/20 text-transparent shadow-sm'
             "
           >
-            <LucideCheck class="size-3" />
+            <LucideCheck class="size-4" stroke-width="3" />
           </span>
         </button>
       </div>
