@@ -135,7 +135,7 @@ def album_photos(album: str, start: int = 0, limit: int | None = None):
     start, limit = int(start or 0), int(limit or PAGE_SIZE)
     user = frappe.session.user
     query = (
-        media_query(check_permission=False)
+        media_query(check_permission=False, archived=None)
         .select(*FILE_FIELDS)
         .join(AlbumItem)
         .on((AlbumItem.file == File.name) & (AlbumItem.album == album))

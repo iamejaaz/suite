@@ -143,7 +143,7 @@ def timeline(
     camera: str | None = None,
     place: str | None = None,
 ):
-    query = _apply_search(media_query(), search)
+    query = _apply_search(media_query(archived=None if search or camera or place else False), search)
     if camera:
         query = query.where(Metadata.camera == camera)
     if place:
