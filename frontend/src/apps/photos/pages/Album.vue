@@ -2,7 +2,7 @@
   <PhotosHeader
     mode="album"
     :album="album ?? undefined"
-    hide-upload
+    :hide-upload="!album?.access?.write"
     @remove-from-album="removeItems"
     @set-cover="useAsCover"
   >
@@ -72,7 +72,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { Button, Dialog, Dropdown, ErrorMessage, TextInput, toast, usePageMeta } from 'frappe-ui'
 import LucideChevronRight from '~icons/lucide/chevron-right'
@@ -97,7 +97,7 @@ import AddPhotosDialog from '../components/AddPhotosDialog.vue'
 import PhotoGrid from '../components/PhotoGrid.vue'
 import PhotosHeader from '../components/PhotosHeader.vue'
 import ShareAlbumDialog from '../components/ShareAlbumDialog.vue'
-import { clearSelection, createFeed, loadAlbums, openLightbox } from '../store'
+import { clearSelection, createFeed, loadAlbums, onUploaded, openLightbox } from '../store'
 
 const props = defineProps<{ album: string }>()
 const router = useRouter()
@@ -122,6 +122,12 @@ async function refresh() {
   }
 }
 refresh()
+onBeforeUnmount(
+  onUploaded(() => {
+    handle.reload()
+    refresh()
+  }),
+)
 
 const menu = computed(() => {
   const access = album.value?.access

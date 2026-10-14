@@ -65,9 +65,9 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useMediaQuery } from '@vueuse/core'
-import { Button, DesktopShell, FrappeUIProvider, MobileShell } from 'frappe-ui'
+import { Button, DesktopShell, FrappeUIProvider, MobileShell, toast } from 'frappe-ui'
 import LucideBookImage from '~icons/lucide/book-image'
 import LucideImages from '~icons/lucide/images'
 import LucideCompass from '~icons/lucide/compass'
@@ -86,11 +86,20 @@ import { clearSelection, lightbox, loadAlbums, uploadPhotos } from '../store'
 setupTheme()
 const loggedIn = computed(() => useSessionStore().isLoggedIn)
 if (loggedIn.value) {
-  initSocket()
+  initSocket().on('photos-album-shared', (data: { album: string; title: string; by: string }) => {
+    toast.info(__('{0} shared “{1}” with you', [data.by, data.title]), {
+      action: {
+        label: __('Open'),
+        onClick: () => router.push({ name: 'photos-album', params: { album: data.album } }),
+      },
+    })
+    loadAlbums()
+  })
   loadAlbums()
 }
 
 const route = useRoute()
+const router = useRouter()
 const isDesktop = useMediaQuery('(min-width: 768px)')
 const dragging = ref(false)
 
@@ -108,7 +117,9 @@ function onDragOver(event: DragEvent) {
 function onDrop(event: DragEvent) {
   dragging.value = false
   const files = [...(event.dataTransfer?.files ?? [])]
-  if (files.length) uploadPhotos(files)
+  if (!files.length) return
+  const album = route.name === 'photos-album' ? String(route.params.album) : undefined
+  uploadPhotos(files, album)
 }
 
 watch(

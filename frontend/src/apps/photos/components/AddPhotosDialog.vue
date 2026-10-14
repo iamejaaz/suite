@@ -33,7 +33,13 @@
     </div>
     <template #actions>
       <div class="flex items-center justify-between">
-        <span class="text-base text-ink-gray-6">{{ __('{0} selected', [picked.size]) }}</span>
+        <div class="flex items-center gap-3">
+          <Button :loading="upload.active" @click="uploadFromComputer">
+            <template #prefix><LucideUpload class="size-4" /></template>
+            {{ __('Upload from computer') }}
+          </Button>
+          <span class="text-base text-ink-gray-6">{{ __('{0} selected', [picked.size]) }}</span>
+        </div>
         <Button variant="solid" :disabled="!picked.size" :loading="saving" @click="save">{{
           __('Add')
         }}</Button>
@@ -46,9 +52,10 @@
 import { reactive, ref, watch } from 'vue'
 import { Button, Dialog, LoadingIndicator, toast } from 'frappe-ui'
 import LucideCheck from '~icons/lucide/check'
+import LucideUpload from '~icons/lucide/upload'
 
 import { type Album, addToAlbum, thumbnailUrl } from '../api'
-import { createFeed } from '../store'
+import { createFeed, upload, uploadPhotos } from '../store'
 
 const props = defineProps<{ album: Album }>()
 const open = defineModel<boolean>({ default: false })
@@ -71,6 +78,20 @@ function toggle(name: string) {
 function onScroll(event: Event) {
   const el = event.target as HTMLElement
   if (el.scrollTop + el.clientHeight > el.scrollHeight - 400) handle.loadMore()
+}
+
+function uploadFromComputer() {
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.multiple = true
+  input.accept = 'image/*,video/*'
+  input.onchange = async () => {
+    const names = await uploadPhotos([...(input.files ?? [])], props.album.name)
+    if (!names.length) return
+    open.value = false
+    emit('added')
+  }
+  input.click()
 }
 
 async function save() {

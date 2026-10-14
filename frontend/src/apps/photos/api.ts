@@ -34,6 +34,7 @@ export interface Album {
   owner_name: string
   general: 'public' | 'site' | null
   shared: boolean
+  shared_on?: string
   access?: { read: number; write: number; share: number; owner: number }
 }
 
@@ -131,7 +132,9 @@ export async function uploadFile(file: File, parent: string, onProgress: (loaded
     })
     if (!response.ok) throw new Error(await errorMessage(response))
     onProgress(Math.min(file.size, offset + CHUNK_SIZE))
+    if (index === total - 1) return ((await response.json()).message?.name as string | undefined) ?? null
   }
+  return null
 }
 
 async function errorMessage(response: Response) {

@@ -114,8 +114,18 @@ def shared_albums():
         distinct=True,
     )
     rows = [row for row in _summaries(names) if row.owner != user]
+    shared_on = dict(
+        frappe.get_all(
+            "Photo Album Share",
+            filters={"album": ["in", names or [""]], "user": ["in", get_principals(user)]},
+            fields=["album", "creation"],
+            order_by="creation asc",
+            as_list=True,
+        )
+    )
     for row in rows:
         row.access = album_access(row.name, user)
+        row.shared_on = shared_on.get(row.name)
     return rows
 
 
@@ -266,6 +276,17 @@ def update_access(
     frappe.get_doc(
         {"doctype": "Photo Album Share", "album": entity_name, "user": user, "read": 1, "write": write}
     ).insert(ignore_permissions=True)
+    if not general:
+        frappe.publish_realtime(
+            "photos-album-shared",
+            {
+                "album": entity_name,
+                "title": frappe.db.get_value("Photo Album", entity_name, "title"),
+                "by": frappe.utils.get_fullname(),
+            },
+            user=user,
+            after_commit=True,
+        )
 
 
 def _as_list(value):

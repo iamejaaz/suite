@@ -183,7 +183,7 @@ function pickFiles() {
   input.type = 'file'
   input.multiple = true
   input.accept = 'image/*,video/*'
-  input.onchange = () => input.files && uploadPhotos([...input.files])
+  input.onchange = () => input.files && uploadPhotos([...input.files], props.album?.name)
   input.click()
 }
 </script>

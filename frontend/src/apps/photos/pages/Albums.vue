@@ -78,7 +78,7 @@ import LucideUsers from '~icons/lucide/users'
 import { appPageMeta } from '@/utils/documentTitle'
 import { createAlbum, thumbnailUrl } from '../api'
 import PhotosHeader from '../components/PhotosHeader.vue'
-import { albums, albumsLoaded, loadAlbums, sharedAlbums } from '../store'
+import { albums, albumsLoaded, loadAlbums, markSharingSeen, sharedAlbums } from '../store'
 import { itemCount } from '../utils'
 
 const props = defineProps<{ shared?: boolean }>()
@@ -86,7 +86,7 @@ const router = useRouter()
 const creating = ref(false)
 const title = ref('')
 const list = computed(() => (props.shared ? sharedAlbums.value : albums.value))
-loadAlbums()
+loadAlbums().then(() => props.shared && markSharingSeen())
 
 async function create() {
   if (!title.value.trim()) return

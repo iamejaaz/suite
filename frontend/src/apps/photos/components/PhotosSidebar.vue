@@ -10,6 +10,7 @@
           :icon="item.icon"
           :route="item.to"
           :active="item.active"
+          :suffix="item.suffix"
         />
       </SidebarSection>
       <SidebarSection :label="__('Library')">
@@ -62,23 +63,27 @@ import photosLogo from '@/assets/app-logos/photos.svg'
 import { useCurrentUser, useSessionStore } from '@/boot/session'
 import { useAppSwitcher } from '@/composables/useAppSwitcher'
 import { switchTheme, themeMode } from '@/utils/setupTheme'
-import { albums } from '../store'
+import { albums, sharedAlbums, sharingSeen } from '../store'
 
 const route = useRoute()
 const collapsed = ref<boolean | null>(null)
 const { fullName } = useCurrentUser()
 const appsMenu = useAppSwitcher('photos')
+const hasNewShares = computed(() =>
+  sharedAlbums.value.some((album) => album.shared_on && album.shared_on > sharingSeen.value),
+)
 
-const item = (label: string, icon: Component, name: string) => ({
+const item = (label: string, icon: Component, name: string, suffix?: string) => ({
   label,
   icon,
+  suffix,
   to: { name },
   active: route.name === name,
 })
 const mainItems = computed(() => [
   item(__('Photos'), LucideImages, 'photos-home'),
   item(__('Explore'), LucideCompass, 'photos-explore'),
-  item(__('Sharing'), LucideUsers, 'photos-sharing'),
+  item(__('Sharing'), LucideUsers, 'photos-sharing', hasNewShares.value ? '●' : undefined),
 ])
 const libraryItems = computed(() => [
   item(__('Favourites'), LucideStar, 'photos-favourites'),

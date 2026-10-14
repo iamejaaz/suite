@@ -6,6 +6,7 @@ import { readString, writeString } from '@/utils/localStorage'
 import {
   type Album,
   type Photo,
+  addToAlbum,
   deleteForever,
   fetchPage,
   getAlbums,
@@ -109,6 +110,17 @@ export function openLightbox(feed: FeedHandle, name: string, slideshow = false) 
   lightbox.open = lightbox.index > -1
 }
 
+export const sharingSeen = ref(readString('photos-sharing-seen', ''))
+export function markSharingSeen() {
+  const latest = sharedAlbums.value.reduce(
+    (max, album) => (album.shared_on && album.shared_on > max ? album.shared_on : max),
+    '',
+  )
+  if (latest <= sharingSeen.value) return
+  sharingSeen.value = latest
+  writeString('photos-sharing-seen', latest)
+}
+
 export const albums = ref<Album[]>([])
 export const sharedAlbums = ref<Album[]>([])
 export const albumsLoaded = ref(false)
@@ -189,16 +201,17 @@ export const upload = reactive({
   totalBytes: 0,
 })
 const uploadListeners = new Set<() => void>()
+export const notifyUploaded = () => uploadListeners.forEach((fn) => fn())
 export const onUploaded = (fn: () => void) => {
   uploadListeners.add(fn)
   return () => uploadListeners.delete(fn)
 }
 
-export async function uploadPhotos(files: File[]) {
+export async function uploadPhotos(files: File[], album?: string): Promise<string[]> {
   const media = files.filter((file) => /^(image|video)\//.test(file.type))
   if (!media.length) {
     toast.warning(__('Only photos and videos can be added here'))
-    return
+    return []
   }
   Object.assign(upload, {
     active: true,
@@ -208,12 +221,14 @@ export async function uploadPhotos(files: File[]) {
     totalBytes: media.reduce((sum, file) => sum + file.size, 0),
   })
   let failed = 0
+  const names: string[] = []
   try {
     const folder = await getUploadFolder()
     for (const file of media) {
       const before = upload.bytes
       try {
-        await uploadFile(file, folder, (loaded) => (upload.bytes = before + loaded))
+        const name = await uploadFile(file, folder, (loaded) => (upload.bytes = before + loaded))
+        if (name) names.push(name)
       } catch (error) {
         failed++
         toast.error(`${file.name}: ${(error as Error).message}`)
@@ -221,10 +236,12 @@ export async function uploadPhotos(files: File[]) {
       upload.bytes = before + file.size
       upload.done++
     }
+    if (album && names.length) await addToAlbum(album, names)
   } finally {
     upload.active = false
-    uploadListeners.forEach((fn) => fn())
+    notifyUploaded()
   }
   const added = media.length - failed
   if (added) toast.success(added === 1 ? __('1 item added') : __('{0} items added', [added]))
+  return names
 }

@@ -11,16 +11,20 @@
       :style="{ flexGrow: year.weight }"
     >
       <button
-        class="pr-3 text-xs font-medium text-ink-gray-5 hover:text-ink-gray-9"
+        class="pr-3 text-xs font-medium hover:text-ink-gray-9"
+        :class="currentYear === year.year ? 'text-ink-gray-9' : 'text-ink-gray-5'"
         @click="jump(year.year, year.months[0].month)"
       >
         {{ year.year }}
       </button>
-      <div class="hidden flex-col group-hover/year:flex">
+      <div class="flex-col group-hover/year:flex" :class="currentYear === year.year ? 'flex' : 'hidden'">
         <button
           v-for="month in year.months"
           :key="month.month"
-          class="pr-3 text-xs text-ink-gray-5 hover:text-ink-gray-9"
+          class="pr-3 text-xs hover:text-ink-gray-9"
+          :class="
+            current === monthKey(year.year, month.month) ? 'font-medium text-ink-gray-9' : 'text-ink-gray-5'
+          "
           @click="jump(year.year, month.month)"
         >
           {{
@@ -35,7 +39,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import dayjs from 'dayjs'
 
 import { type MonthCount, getMonths } from '../api'
@@ -58,8 +62,27 @@ const years = computed(() => {
   }))
 })
 
+const current = ref('')
+const currentYear = computed(() => Number(current.value.slice(0, 4)) || null)
+const monthKey = (year: number, month: number) => `${year}-${String(month).padStart(2, '0')}`
+
+function track() {
+  const lines = document.querySelectorAll<HTMLElement>('[data-month]')
+  for (const line of lines) {
+    if (line.getBoundingClientRect().bottom > 80) {
+      current.value = line.dataset.month ?? ''
+      return
+    }
+  }
+}
+onMounted(() => {
+  document.addEventListener('scroll', track, { capture: true, passive: true })
+  setTimeout(track, 500)
+})
+onBeforeUnmount(() => document.removeEventListener('scroll', track, { capture: true }))
+
 async function jump(year: number, month: number) {
-  const key = `${year}-${String(month).padStart(2, '0')}`
+  const key = monthKey(year, month)
   for (let attempt = 0; attempt < 30; attempt++) {
     const target = [...document.querySelectorAll<HTMLElement>('[data-month]')].find(
       (el) => (el.dataset.month ?? '') <= key,

@@ -36,6 +36,11 @@
                 </button>
               </Tooltip>
             </template>
+            <Tooltip v-if="inDrive && !isVideo(photo)" :text="__('Edit')">
+              <button class="lightbox-button" @click="editing = true">
+                <LucideSlidersHorizontal class="size-5" />
+              </button>
+            </Tooltip>
             <Tooltip :text="__('Download')">
               <a class="lightbox-button" :href="downloadUrl(photo.name)">
                 <LucideDownload class="size-5" />
@@ -184,6 +189,12 @@
         </div>
       </aside>
     </div>
+    <PhotoEditor
+      :photo="editing ? photo : null"
+      :folder="details?.folder"
+      @close="editing = false"
+      @saved="notifyUploaded"
+    />
   </Teleport>
 </template>
 
@@ -207,6 +218,7 @@ import LucideImagePlus from '~icons/lucide/image-plus'
 import LucideInfo from '~icons/lucide/info'
 import LucideMapPin from '~icons/lucide/map-pin'
 import LucidePlay from '~icons/lucide/play'
+import LucideSlidersHorizontal from '~icons/lucide/sliders-horizontal'
 import LucideStar from '~icons/lucide/star'
 import LucideTrash2 from '~icons/lucide/trash-2'
 import LucideX from '~icons/lucide/x'
@@ -217,18 +229,21 @@ import {
   albums,
   archive,
   lightbox,
+  notifyUploaded,
   pickAlbumFor,
   sharedAlbums,
   toggleFavourite,
   trash,
 } from '../store'
 import InfoRow from './InfoRow.vue'
+import PhotoEditor from './PhotoEditor.vue'
 
 const router = useRouter()
 const feed = computed(() => activeFeed.value)
 const rows = computed(() => feed.value?.feed.rows ?? [])
 const photo = computed(() => rows.value[lightbox.index])
 const loaded = ref(false)
+const editing = ref(false)
 const details = ref<any>(null)
 
 const meta = computed(() => details.value?.metadata)
@@ -338,7 +353,7 @@ async function removeCurrent() {
 function onKey(event: KeyboardEvent) {
   if (!lightbox.open) return
   const target = event.target as HTMLElement
-  if (target.closest('input, textarea, [role="dialog"]')) return
+  if (editing.value || target.closest('input, textarea, [role="dialog"]')) return
   if (lightbox.slideshow) {
     lightbox.slideshow = false
     event.preventDefault()
