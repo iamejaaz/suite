@@ -145,6 +145,16 @@ export function makeCollage(files: string[]) {
   collage.open = true
 }
 
+export const movie = reactive<{ open: boolean; files: string[] }>({ open: false, files: [] })
+export function makeMovie(files: string[]) {
+  if (files.length < 2) {
+    toast.warning(__('Pick at least two photos for a movie'))
+    return
+  }
+  movie.files = files
+  movie.open = true
+}
+
 export const albumPicker = reactive<{ open: boolean; files: string[] }>({
   open: false,
   files: [],

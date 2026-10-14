@@ -57,6 +57,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { Button, Dialog, PageHeader, TextInput, Tooltip } from 'frappe-ui'
 import LucideArchive from '~icons/lucide/archive'
 import LucideArchiveRestore from '~icons/lucide/archive-restore'
+import LucideClapperboard from '~icons/lucide/clapperboard'
 import LucideDownload from '~icons/lucide/download'
 import LucideImageMinus from '~icons/lucide/image-minus'
 import LucideImagePlus from '~icons/lucide/image-plus'
@@ -78,6 +79,7 @@ import {
   clearSelection,
   download,
   makeCollage,
+  makeMovie,
   pickAlbumFor,
   removeForever,
   restore,
@@ -128,6 +130,12 @@ const actions = computed<Action[]>(() => {
   }
   const save: Action = { label: __('Download'), icon: LucideDownload, run: () => download(selected()) }
   const toTrash: Action = { label: __('Move to trash'), icon: LucideTrash2, run: () => trash(writable()) }
+  const movie: Action = {
+    label: __('Create movie'),
+    icon: LucideClapperboard,
+    keepSelection: true,
+    run: (names) => makeMovie(names.filter((name) => !isVideo(rowFor(name)))),
+  }
 
   if (props.mode === 'trash')
     return [
@@ -156,7 +164,7 @@ const actions = computed<Action[]>(() => {
       toTrash,
     ]
   if (props.mode === 'album') {
-    const list: Action[] = loggedIn.value ? [addToAlbum, save] : [save]
+    const list: Action[] = loggedIn.value ? [addToAlbum, save, movie] : [save]
     if (props.album?.access?.write) {
       list.push({
         label: __('Remove from album'),
@@ -176,6 +184,7 @@ const actions = computed<Action[]>(() => {
     { label: __('Favourite'), icon: LucideStar, run: () => toggleFavourite(selected()) },
     addToAlbum,
     save,
+    movie,
     {
       label: __('Create collage'),
       icon: LucideLayoutGrid,

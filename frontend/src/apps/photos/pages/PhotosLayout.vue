@@ -60,6 +60,7 @@
     </div>
     <Lightbox />
     <AlbumPicker />
+    <MovieDialog />
     <KeyboardShortcutsDialog v-model:open="showShortcuts" />
     <CollageDialog />
   </FrappeUIProvider>
@@ -90,6 +91,7 @@ import { useSessionStore } from '@/boot/session'
 import { setupTheme } from '@/utils/setupTheme'
 import AlbumPicker from '../components/AlbumPicker.vue'
 import CollageDialog from '../components/CollageDialog.vue'
+import MovieDialog from '../components/MovieDialog.vue'
 import Lightbox from '../components/Lightbox.vue'
 import PhotosSidebar from '../components/PhotosSidebar.vue'
 import {
@@ -97,6 +99,7 @@ import {
   clearSelection,
   lightbox,
   loadAlbums,
+  notifyUploaded,
   selection,
   uploadPhotos,
 } from '../store'
@@ -112,6 +115,12 @@ if (loggedIn.value) {
       },
     })
     loadAlbums()
+  })
+  initSocket().on('photos-movie-ready', (data: { title: string }) => {
+    notifyUploaded()
+    toast.success(__('“{0}” is ready in Photos', [data.title]), {
+      action: { label: __('View'), onClick: () => router.push({ name: 'photos-home' }) },
+    })
   })
   loadAlbums()
 }

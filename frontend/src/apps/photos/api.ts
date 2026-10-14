@@ -161,6 +161,8 @@ export const mergePeople = (target: string, sources: string[]) =>
 export const removePhotosFromPerson = (person: string, files: string[]) =>
   call(`${PEOPLE}.remove_photos`, { person, files })
 
+export const createMovie = (files: string[], title: string, seconds: number) =>
+  call('suite.photos.movies.create_movie', { files, title, seconds })
 export const ALBUM_SHARING = {
   list: `${ALBUMS}.get_shared_with_list`,
   update: `${ALBUMS}.update_access`,
