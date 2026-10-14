@@ -13,19 +13,19 @@ describe('getPhoneAppSwitcherItems', () => {
 
 	it('leads with the current app, then only the other apps with a phone layout', () => {
 		jmapUser.value = true
-		expect(names('mail')).toEqual(['mail', 'calendar'])
-		expect(names('calendar')).toEqual(['calendar', 'mail'])
+		expect(names('mail')).toEqual(['mail', 'photos', 'calendar'])
+		expect(names('calendar')).toEqual(['calendar', 'photos', 'mail'])
 	})
 
 	it('leaves Desk out even for a system user, since it has no phone layout', () => {
 		jmapUser.value = true
 		systemUser.value = true
-		expect(names('mail')).toEqual(['mail', 'calendar'])
+		expect(names('mail')).toEqual(['mail', 'photos', 'calendar'])
 	})
 
 	it('offers no other app the desktop menu would not', () => {
 		jmapUser.value = false
-		expect(names('mail')).toEqual(['mail'])
+		expect(names('mail')).toEqual(['mail', 'photos'])
 	})
 
 	it('can include the current app for the command palette', () => {

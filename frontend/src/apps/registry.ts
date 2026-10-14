@@ -48,7 +48,7 @@ export const SUITE_LOGO = suiteLogo
 
 export const SUITE_APPS: SuiteApp[] = [
   { id: 'drive', name: 'Drive', prefix: '/drive', logo: driveLogo },
-  { id: 'photos', name: 'Photos', prefix: '/photos', logo: photosLogo },
+  { id: 'photos', name: 'Photos', prefix: '/photos', logo: photosLogo, pwa: true },
   { id: 'slides', name: 'Slides', prefix: '/slides', logo: slidesLogo },
   { id: 'writer', name: 'Writer', prefix: '/writer', logo: writerLogo },
   { id: 'sheets', name: 'Sheets', prefix: '/sheets', logo: sheetsLogo },
