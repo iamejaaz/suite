@@ -21,6 +21,7 @@ import { createFeed } from '../store'
 
 const route = useRoute()
 const params = {
+  thing: route.query.thing || undefined,
   search: route.query.q || undefined,
   camera: route.query.camera || undefined,
   place: route.query.place || undefined,
@@ -29,7 +30,8 @@ const handle = createFeed('timeline', params)
 
 const title = computed(() => {
   if (params.camera) return __('Taken with {0}', [String(params.camera)])
-  if (params.place) return __('Photos near {0}', [String(params.place).replace(',', ', ')])
+  if (params.place) return String(params.place)
+  if (params.thing) return String(params.thing)
   return __('Results for “{0}”', [String(params.search)])
 })
 

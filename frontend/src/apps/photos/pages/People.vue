@@ -9,7 +9,7 @@
   <div v-if="data && !data.enabled" class="flex flex-col items-center gap-3 py-24 text-center">
     <div class="text-lg font-medium text-ink-gray-8">{{ __('Face grouping is off') }}</div>
     <div class="max-w-sm text-base text-ink-gray-5">
-      {{ __('An administrator can turn it on with bench photos-setup-faces --scan.') }}
+      {{ __('An administrator can turn it on with bench photos-setup --scan.') }}
     </div>
   </div>
   <div v-else class="grid grid-cols-3 gap-x-4 gap-y-6 p-3 sm:grid-cols-5 sm:p-5 lg:grid-cols-7">

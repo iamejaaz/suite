@@ -29,10 +29,8 @@ function render() {
         <span class="absolute bottom-0 right-0 rounded-tl bg-black/60 px-1 text-[10px] text-white">${place.count}</span>
       </div>`,
     })
-    L.marker([place.latitude, place.longitude], { icon })
-      .on('click', () =>
-        router.push({ name: 'photos-search', query: { place: `${place.latitude},${place.longitude}` } }),
-      )
+    L.marker([place.latitude, place.longitude], { icon, title: place.place ?? '' })
+      .on('click', () => place.place && router.push({ name: 'photos-search', query: { place: place.place } }))
       .addTo(layer)
   }
   if (props.places.length) {

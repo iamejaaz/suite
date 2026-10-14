@@ -59,9 +59,9 @@ def extract(file_name):
     frappe.get_doc({"doctype": "Photo Metadata", "file": file_name, **data}).insert(
         ignore_permissions=True, ignore_if_duplicate=True
     )
-    from suite.photos.faces import scan_file
+    from suite.photos.scan import enrich
 
-    scan_file(file_name)
+    enrich(file_name)
 
 
 def _image_metadata(path):

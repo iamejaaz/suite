@@ -251,7 +251,7 @@ def _people(sources, work, owner, today):
     from suite.photos import faces
 
     if not faces.available():
-        print("Skipping people: run `bench photos-setup-faces` first.")
+        print("Skipping people: run `bench photos-setup` first.")
         return
     print("Downloading 6 generated faces (people who do not exist)")
     portraits = []

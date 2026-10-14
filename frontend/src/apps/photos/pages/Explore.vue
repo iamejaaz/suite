@@ -36,6 +36,41 @@
       <p v-else-if="data" class="text-base text-ink-gray-5">
         {{ __('Photos with a location show up on a map here.') }}
       </p>
+      <div v-if="namedPlaces.length" class="mt-3 flex flex-wrap gap-2">
+        <router-link
+          v-for="place in namedPlaces"
+          :key="place.place!"
+          :to="{ name: 'photos-search', query: { place: place.place } }"
+          class="flex items-center gap-2 rounded-full bg-surface-gray-2 py-1 pl-1 pr-3 text-sm text-ink-gray-8 hover:bg-surface-gray-3"
+        >
+          <img :src="thumbnailUrl(place.cover)" class="size-6 rounded-full object-cover" alt="" />
+          {{ place.place }}
+          <span class="text-ink-gray-5">{{ place.count }}</span>
+        </router-link>
+      </div>
+    </section>
+
+    <section v-if="data?.things.length">
+      <h2 class="mb-3 text-lg font-semibold text-ink-gray-9">{{ __('Things') }}</h2>
+      <div class="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-6">
+        <router-link
+          v-for="thing in data.things"
+          :key="thing.thing"
+          :to="{ name: 'photos-search', query: { thing: thing.thing } }"
+          class="group relative aspect-square overflow-hidden rounded-xl bg-surface-gray-2"
+        >
+          <img
+            :src="thumbnailUrl(thing.cover)"
+            class="size-full object-cover transition-transform duration-300 group-hover:scale-105"
+            alt=""
+          />
+          <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+          <div class="absolute inset-x-3 bottom-3 text-white">
+            <div class="text-base font-semibold">{{ __(thing.thing) }}</div>
+            <div class="text-xs text-white/80">{{ itemCount(thing.count) }}</div>
+          </div>
+        </router-link>
+      </div>
     </section>
 
     <section v-if="data?.cameras.length">
@@ -89,7 +124,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { usePageMeta } from 'frappe-ui'
 import LucidePlay from '~icons/lucide/play'
 
@@ -104,6 +139,7 @@ const data = ref<Awaited<ReturnType<typeof getExplore>>>()
 const allPlaces = ref<Place[]>([])
 getExplore().then((result) => (data.value = result))
 getPlaces().then((result) => (allPlaces.value = result))
+const namedPlaces = computed(() => allPlaces.value.filter((place) => place.place).slice(0, 16))
 const people = ref<Person[]>([])
 getPeople().then((result) => (people.value = result.people))
 

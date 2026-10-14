@@ -23,7 +23,7 @@
       </div>
       <div class="flex items-center gap-2">
         <form v-if="searchable" class="hidden sm:block" @submit.prevent="search">
-          <TextInput v-model="query" class="w-72" :placeholder="__('Search by name, camera, month or year')">
+          <TextInput v-model="query" class="w-72" :placeholder="__('Search people, places, things, dates')">
             <template #prefix><LucideSearch class="size-4 text-ink-gray-5" /></template>
           </TextInput>
         </form>

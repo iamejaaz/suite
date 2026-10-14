@@ -53,6 +53,7 @@ def media_query(**kwargs):
             Metadata.camera,
             Metadata.latitude,
             Metadata.longitude,
+            Metadata.place,
         )
         .orderby(taken, order=Order.desc)
     )
@@ -127,7 +128,13 @@ def _apply_search(query, search):
             query = query.where(File.mime_type.like("image/%"))
         else:
             like = f"%{token}%"
-            query = query.where(File.file_name.like(like) | Metadata.camera.like(like))
+            query = query.where(
+                File.file_name.like(like)
+                | Metadata.camera.like(like)
+                | Metadata.place.like(like)
+                | Metadata.labels.like(like)
+                | Metadata.things.like(like)
+            )
     return query
 
 
@@ -154,15 +161,16 @@ def timeline(
     search: str | None = None,
     camera: str | None = None,
     place: str | None = None,
+    thing: str | None = None,
 ):
-    query = _apply_search(media_query(archived=None if search or camera or place else False), search)
+    filtered = search or camera or place or thing
+    query = _apply_search(media_query(archived=None if filtered else False), search)
     if camera:
         query = query.where(Metadata.camera == camera)
     if place:
-        lat, lon = (float(x) for x in place.split(","))
-        query = query.where(
-            (fn.Abs(Metadata.latitude - lat) < 0.05) & (fn.Abs(Metadata.longitude - lon) < 0.05)
-        )
+        query = query.where(Metadata.place == place)
+    if thing:
+        query = query.where(Metadata.things.like(f"%{thing}%"))
     return page(query, start, limit)
 
 
@@ -273,12 +281,36 @@ def places():
     rows = page(query, 0, 1000)["rows"]
     groups = {}
     for row in rows:
-        key = (round(row["latitude"], 1), round(row["longitude"], 1))
+        key = row.get("place") or (round(row["latitude"], 1), round(row["longitude"], 1))
         group = groups.setdefault(
-            key, {"latitude": key[0], "longitude": key[1], "count": 0, "cover": row["name"]}
+            key,
+            {
+                "place": row.get("place"),
+                "latitude": row["latitude"],
+                "longitude": row["longitude"],
+                "count": 0,
+                "cover": row["name"],
+            },
         )
         group["count"] += 1
     return sorted(groups.values(), key=lambda g: -g["count"])
+
+
+def things_summary():
+    rows = (
+        media_base()
+        .where(Metadata.things.isnotnull() & (Metadata.things != ""))
+        .select(File.name, Metadata.things)
+        .orderby(taken, order=Order.desc)
+        .limit(2000)
+        .run(as_dict=True)
+    )
+    summary = {}
+    for row in rows:
+        for thing in row.things.split(", "):
+            entry = summary.setdefault(thing, {"thing": thing, "count": 0, "cover": row.name})
+            entry["count"] += 1
+    return sorted(summary.values(), key=lambda entry: -entry["count"])
 
 
 @frappe.whitelist()
@@ -300,6 +332,7 @@ def explore():
     )
     return {
         "places": places()[:12],
+        "things": things_summary(),
         "cameras": cameras.run(as_dict=True),
         "videos": videos.run(as_dict=True)[0],
     }
@@ -330,7 +363,7 @@ def get_details(name: str):
     file.metadata = frappe.db.get_value(
         "Photo Metadata",
         name,
-        ["taken_on", "width", "height", "duration", "camera", "latitude", "longitude"],
+        ["taken_on", "width", "height", "duration", "camera", "latitude", "longitude", "place", "labels"],
         as_dict=True,
     )
     if frappe.session.user == "Guest" or not get_user_access(name).get("read"):

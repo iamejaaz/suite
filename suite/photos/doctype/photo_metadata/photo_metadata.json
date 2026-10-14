@@ -14,7 +14,12 @@
   "latitude",
   "longitude",
   "phash",
-  "faces_scanned"
+  "faces_scanned",
+  "place",
+  "country",
+  "labels",
+  "things",
+  "things_scanned"
  ],
  "fields": [
   {
@@ -76,10 +81,37 @@
    "fieldname": "faces_scanned",
    "fieldtype": "Check",
    "label": "Faces Scanned"
+  },
+  {
+   "fieldname": "place",
+   "fieldtype": "Data",
+   "label": "Place",
+   "search_index": 1
+  },
+  {
+   "fieldname": "country",
+   "fieldtype": "Data",
+   "label": "Country"
+  },
+  {
+   "fieldname": "labels",
+   "fieldtype": "Small Text",
+   "label": "Labels"
+  },
+  {
+   "fieldname": "things",
+   "fieldtype": "Data",
+   "label": "Things",
+   "length": 240
+  },
+  {
+   "fieldname": "things_scanned",
+   "fieldtype": "Check",
+   "label": "Things Scanned"
   }
  ],
  "links": [],
- "modified": "2026-10-14 19:00:00.000000",
+ "modified": "2026-10-14 21:00:00.000000",
  "modified_by": "Administrator",
  "module": "Photos",
  "name": "Photo Metadata",

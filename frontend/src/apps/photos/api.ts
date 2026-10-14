@@ -47,6 +47,7 @@ export interface Memory {
 }
 
 export interface Place {
+  place: string | null
   latitude: number
   longitude: number
   count: number
@@ -89,6 +90,7 @@ export const getFolders = () => call(`${PHOTOS}.folders`) as Promise<Folder[]>
 export const getExplore = () =>
   call(`${PHOTOS}.explore`) as Promise<{
     places: Place[]
+    things: { thing: string; count: number; cover: string }[]
     cameras: { camera: string; cover: string; count: number }[]
     videos: { count: number; cover: string | null }
   }>

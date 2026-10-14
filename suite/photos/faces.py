@@ -1,24 +1,10 @@
 import base64
-import hashlib
-from pathlib import Path
 
 import frappe
-import requests
 
 from suite.drive.utils.files import FileManager, storage_key
+from suite.photos import assets
 
-MODELS = {
-    "detector": (
-        "face_detection_yunet_2023mar.onnx",
-        "https://github.com/opencv/opencv_zoo/raw/main/models/face_detection_yunet/face_detection_yunet_2023mar.onnx",
-        "8f2383e4dd3cfbb4553ea8718107fc0423210dc964f9f4280604804ed2552fa4",
-    ),
-    "recognizer": (
-        "face_recognition_sface_2021dec.onnx",
-        "https://github.com/opencv/opencv_zoo/raw/main/models/face_recognition_sface/face_recognition_sface_2021dec.onnx",
-        "0ba9fbfa01b5270c96627c4ef784da859931e02f04419c829e83484087c34e79",
-    ),
-}
 DETECT_SIDE = 1280
 MIN_FACE = 48
 MIN_SCORE = 0.85
@@ -28,35 +14,8 @@ VIDEO_SAMPLES = 12
 _engine = None
 
 
-def model_dir():
-    return Path(frappe.get_app_path("suite", "photos", "models"))
-
-
 def available():
-    try:
-        import cv2
-    except ImportError:
-        return False
-    return all((model_dir() / name).exists() for name, _, _ in MODELS.values())
-
-
-def setup_models():
-    model_dir().mkdir(parents=True, exist_ok=True)
-    for name, url, checksum in MODELS.values():
-        target = model_dir() / name
-        if target.exists() and _sha256(target) == checksum:
-            print(f"{name} is ready")
-            continue
-        print(f"Downloading {name}")
-        response = requests.get(url, timeout=300)
-        response.raise_for_status()
-        if hashlib.sha256(response.content).hexdigest() != checksum:
-            frappe.throw(f"Checksum mismatch for {name}")
-        target.write_bytes(response.content)
-
-
-def _sha256(path):
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    return assets.opencv_installed() and assets.ready("face_detector", "face_recognizer")
 
 
 def _models():
@@ -65,9 +24,9 @@ def _models():
         import cv2
 
         detector = cv2.FaceDetectorYN.create(
-            str(model_dir() / MODELS["detector"][0]), "", (320, 320), MIN_SCORE, 0.3, 50
+            str(assets.path("face_detector")), "", (320, 320), MIN_SCORE, 0.3, 50
         )
-        recognizer = cv2.FaceRecognizerSF.create(str(model_dir() / MODELS["recognizer"][0]), "")
+        recognizer = cv2.FaceRecognizerSF.create(str(assets.path("face_recognizer")), "")
         _engine = (detector, recognizer)
     return _engine
 
@@ -240,23 +199,6 @@ def recompute(person):
     cover = frappe.db.get_value("Photo Person", person, "cover_face")
     if not any(face.name == cover for face in faces):
         frappe.db.set_value("Photo Person", person, "cover_face", faces[0].name, update_modified=False)
-
-
-def scan_all(user=None):
-    filters = {"faces_scanned": 0}
-    names = frappe.get_all("Photo Metadata", filters=filters, pluck="name")
-    if user:
-        owned = set(
-            frappe.get_all("File", filters={"owner": user, "name": ["in", names or [""]]}, pluck="name")
-        )
-        names = [name for name in names if name in owned]
-    for index, name in enumerate(names, 1):
-        scan_file(name)
-        if index % 20 == 0:
-            frappe.db.commit()
-            print(f"\rScanned {index}/{len(names)}", end="", flush=True)
-    frappe.db.commit()
-    print(f"\rScanned {len(names)} photos")
 
 
 def face_crop(face, size=256):

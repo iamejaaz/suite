@@ -154,7 +154,10 @@
               <InfoRow
                 v-if="meta?.latitude"
                 :icon="LucideMapPin"
-                :title="`${meta.latitude.toFixed(4)}, ${meta.longitude.toFixed(4)}`"
+                :title="meta.place || `${meta.latitude.toFixed(4)}, ${meta.longitude.toFixed(4)}`"
+                :subtitle="
+                  meta.place ? `${meta.latitude.toFixed(4)}, ${meta.longitude.toFixed(4)}` : undefined
+                "
                 :href="`https://www.openstreetmap.org/?mlat=${meta.latitude}&mlon=${meta.longitude}#map=14/${meta.latitude}/${meta.longitude}`"
               />
             </dl>
