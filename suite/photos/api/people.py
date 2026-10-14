@@ -54,7 +54,8 @@ def photo_people(file: str):
     faces = frappe.get_all(
         "Photo Face",
         filters={"file": file, "person": ["in", _own_people() or [""]]},
-        fields=["name", "person"],
+        fields=["name", "person", "timestamp"],
+        order_by="timestamp asc",
     )
     names = dict(
         frappe.get_all(
@@ -65,7 +66,13 @@ def photo_people(file: str):
         )
     )
     return [
-        {"face": face.name, "person": face.person, "person_name": names.get(face.person)} for face in faces
+        {
+            "face": face.name,
+            "person": face.person,
+            "person_name": names.get(face.person),
+            "timestamp": face.timestamp,
+        }
+        for face in faces
     ]
 
 
@@ -112,7 +119,9 @@ def remove_face(face: str):
 
 @frappe.whitelist()
 def face_thumbnail(face: str):
-    row = frappe.db.get_value("Photo Face", face, ["name", "file", "x", "y", "width", "height"], as_dict=True)
+    row = frappe.db.get_value(
+        "Photo Face", face, ["name", "file", "x", "y", "width", "height", "timestamp"], as_dict=True
+    )
     if not row or not user_has_permission(row.file, "read"):
         frappe.throw("No permission", frappe.PermissionError)
     buffer = BytesIO()

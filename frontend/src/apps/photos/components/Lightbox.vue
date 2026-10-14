@@ -78,6 +78,7 @@
             :key="photo.name"
             :src="streamUrl(photo.name)"
             :poster="thumbnailUrl(photo.name)"
+            ref="videoEl"
             class="max-h-full max-w-full"
             controls
             autoplay
@@ -161,17 +162,34 @@
           <section v-if="photoPeople.length">
             <div class="mb-2 text-sm font-medium text-ink-gray-5">{{ __('People') }}</div>
             <div class="flex flex-wrap gap-3">
-              <router-link
+              <div
                 v-for="entry in photoPeople"
                 :key="entry.face"
-                :to="{ name: 'photos-person', params: { person: entry.person } }"
                 class="flex w-16 flex-col items-center gap-1 text-center"
               >
-                <FaceAvatar :face="entry.face" class="size-12" />
-                <span class="w-full truncate text-xs text-ink-gray-7">{{
-                  entry.person_name || __('Add a name')
-                }}</span>
-              </router-link>
+                <button
+                  v-if="isVideo(photo)"
+                  class="relative"
+                  :aria-label="__('Jump to {0}', [entry.person_name || __('this person')])"
+                  @click="seek(entry.timestamp)"
+                >
+                  <FaceAvatar :face="entry.face" class="size-12" />
+                  <span
+                    class="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded bg-surface-gray-7 px-1 text-xs text-ink-white"
+                  >
+                    {{ formatTime(entry.timestamp) }}
+                  </span>
+                </button>
+                <router-link v-else :to="{ name: 'photos-person', params: { person: entry.person } }">
+                  <FaceAvatar :face="entry.face" class="size-12" />
+                </router-link>
+                <router-link
+                  :to="{ name: 'photos-person', params: { person: entry.person } }"
+                  class="w-full truncate text-xs text-ink-gray-7 hover:underline"
+                >
+                  {{ entry.person_name || __('Add a name') }}
+                </router-link>
+              </div>
             </div>
           </section>
           <section v-if="details.folder">
@@ -249,6 +267,7 @@ import LucideX from '~icons/lucide/x'
 import { useSessionStore } from '@/boot/session'
 import {
   ALBUM_PHOTOS,
+  type PhotoPerson,
   contentUrl,
   downloadUrl,
   getDetails,
@@ -279,7 +298,19 @@ const rows = computed(() => feed.value?.feed.rows ?? [])
 const photo = computed(() => rows.value[lightbox.index])
 const loaded = ref(false)
 const editing = ref(false)
-const photoPeople = ref<{ face: string; person: string; person_name: string | null }[]>([])
+const photoPeople = ref<PhotoPerson[]>([])
+const videoEl = ref<HTMLVideoElement>()
+
+function seek(timestamp: number | null) {
+  if (!videoEl.value) return
+  videoEl.value.currentTime = timestamp ?? 0
+  videoEl.value.play()
+}
+
+function formatTime(seconds: number | null) {
+  const total = Math.round(seconds ?? 0)
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`
+}
 const loggedIn = computed(() => useSessionStore().isLoggedIn)
 const albumName = computed(() =>
   feed.value?.feed.method === ALBUM_PHOTOS ? String(feed.value.feed.params.album) : null,

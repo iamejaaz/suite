@@ -172,22 +172,25 @@ def _dms(value):
     return (Fraction(degrees), Fraction(minutes), Fraction(seconds).limit_denominator(100))
 
 
-def _video(frame, target, taken):
+def _video(frame, target, taken, extra=()):
     import av
 
-    base = Image.open(frame).convert("RGB").resize((1920, 1280))
+    scenes = [frame, *extra]
+    steps = 150 if len(scenes) == 1 else 90
     with av.open(str(target), "w") as container:
         stream = container.add_stream("h264", rate=30)
         stream.width, stream.height, stream.pix_fmt = 1280, 720, "yuv420p"
-        for step in range(150):
-            progress = step / 149
-            width = int(1920 - 640 * progress)
-            height = int(width * 9 / 16)
-            left = int((1920 - width) * progress * 0.6)
-            top = (1280 - height) // 2
-            image = base.crop((left, top, left + width, top + height)).resize((1280, 720))
-            for packet in stream.encode(av.VideoFrame.from_image(image)):
-                container.mux(packet)
+        for scene in scenes:
+            base = Image.open(scene).convert("RGB").resize((1920, 1280))
+            for step in range(steps):
+                progress = step / (steps - 1)
+                width = int(1920 - (640 if len(scenes) == 1 else 300) * progress)
+                height = int(width * 9 / 16)
+                left = int((1920 - width) * progress * 0.6)
+                top = (1280 - height) // 2 if len(scenes) == 1 else 1280 - height
+                image = base.crop((left, top, left + width, top + height)).resize((1280, 720))
+                for packet in stream.encode(av.VideoFrame.from_image(image)):
+                    container.mux(packet)
         for packet in stream.encode():
             container.mux(packet)
         container.metadata["creation_time"] = taken.strftime("%Y-%m-%dT%H:%M:%S.000000Z")
@@ -280,6 +283,12 @@ def _people(sources, work, owner, today):
         files.append(name)
         if len(people) == 1:
             solo.setdefault(people[0], []).append(name)
+
+    group_shots = [work / f"people_{number:02}.jpg" for number in range(len(shots) - len(GROUPS), len(shots))]
+    clip = work / "PXL_party_clip.mp4"
+    clip_taken = today - datetime.timedelta(days=30, hours=4)
+    _video(group_shots[0], clip, clip_taken, extra=group_shots[1:])
+    files.append(_save(clip, owner, clip_taken))
 
     frappe.set_user(owner)
     album_api.create_album("Friends and family", files)

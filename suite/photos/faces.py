@@ -23,6 +23,7 @@ DETECT_SIDE = 1280
 MIN_FACE = 48
 MIN_SCORE = 0.85
 SAME_PERSON = 0.55
+VIDEO_SAMPLES = 12
 
 _engine = None
 
@@ -76,11 +77,13 @@ def scan_file(file_name):
     if not metadata or metadata.faces_scanned or not available():
         return
     file = frappe.db.get_value("File", file_name, ["file_url", "mime_type", "owner"], as_dict=True)
-    if not file or not (file.mime_type or "").startswith("image/"):
+    mime_type = (file.mime_type or "") if file else ""
+    if not mime_type.startswith(("image/", "video/")):
         return
     path = FileManager().site_folder / storage_key(file.file_url or "")
     if path.exists():
-        for face in _detect(path):
+        found = _video_faces(path) if mime_type.startswith("video/") else _image_faces(path)
+        for face in found:
             doc = frappe.get_doc({"doctype": "Photo Face", "file": file_name, **face}).insert(
                 ignore_permissions=True
             )
@@ -88,13 +91,62 @@ def scan_file(file_name):
     frappe.db.set_value("Photo Metadata", metadata.name, "faces_scanned", 1, update_modified=False)
 
 
-def _detect(path):
-    import cv2
-    import numpy as np
+def _image_faces(path):
     from PIL import Image, ImageOps
 
     with Image.open(path) as image:
-        rgb = ImageOps.exif_transpose(image).convert("RGB")
+        return _detect(ImageOps.exif_transpose(image).convert("RGB"))
+
+
+def _video_faces(path):
+    import numpy as np
+
+    people = []
+    for timestamp, image in _video_frames(path):
+        for face in _detect(image):
+            vector = _decode(face["embedding"])
+            match = next((p for p in people if float(np.dot(vector, p["vector"])) > SAME_PERSON), None)
+            face["timestamp"] = timestamp
+            if not match:
+                people.append({"vector": vector, "face": face})
+            elif face["width"] * face["height"] * face["score"] > (
+                match["face"]["width"] * match["face"]["height"] * match["face"]["score"]
+            ):
+                match["face"] = face
+    return [person["face"] for person in people]
+
+
+def _video_frames(path):
+    import av
+
+    with av.open(str(path)) as container:
+        stream = container.streams.video[0]
+        duration = float(container.duration / av.time_base) if container.duration else 0
+        times = [duration * (i + 0.5) / VIDEO_SAMPLES for i in range(VIDEO_SAMPLES)] if duration else [0]
+        for timestamp in times:
+            frame = _frame_at(container, stream, timestamp)
+            if frame is not None:
+                yield timestamp, _upright(frame)
+
+
+def _frame_at(container, stream, timestamp):
+    container.seek(int(timestamp / stream.time_base), stream=stream, backward=True, any_frame=False)
+    for frame in container.decode(stream):
+        if frame.time is None or frame.time >= timestamp - 0.05:
+            return frame
+    return None
+
+
+def _upright(frame):
+    image = frame.to_image()
+    rotation = getattr(frame, "rotation", 0) or 0
+    return image.rotate(rotation, expand=True) if rotation else image
+
+
+def _detect(rgb):
+    import cv2
+    import numpy as np
+
     scale = min(1.0, DETECT_SIDE / max(rgb.size))
     if scale < 1:
         rgb = rgb.resize((round(rgb.width * scale), round(rgb.height * scale)))
@@ -208,11 +260,18 @@ def scan_all(user=None):
 
 
 def face_crop(face, size=256):
+    import av
     from PIL import Image, ImageOps
 
-    path = FileManager().site_folder / storage_key(frappe.db.get_value("File", face.file, "file_url") or "")
-    with Image.open(path) as image:
-        image = ImageOps.exif_transpose(image).convert("RGB")
+    file = frappe.db.get_value("File", face.file, ["file_url", "mime_type"], as_dict=True)
+    path = FileManager().site_folder / storage_key(file.file_url or "")
+    if (file.mime_type or "").startswith("video/"):
+        with av.open(str(path)) as container:
+            stream = container.streams.video[0]
+            image = _upright(_frame_at(container, stream, face.timestamp or 0)).convert("RGB")
+    else:
+        with Image.open(path) as image:
+            image = ImageOps.exif_transpose(image).convert("RGB")
     width, height = image.size
     side = max(face.width * width, face.height * height) * 1.6
     cx = (face.x + face.width / 2) * width

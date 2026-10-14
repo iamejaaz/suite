@@ -123,6 +123,12 @@ export interface Person {
   face_count: number
   hidden: number
 }
+export interface PhotoPerson {
+  face: string
+  person: string
+  person_name: string | null
+  timestamp: number | null
+}
 const PEOPLE = 'suite.photos.api.people'
 export const PERSON_PHOTOS = `${PEOPLE}.person_photos`
 export const faceUrl = (face: string) => `/api/method/${PEOPLE}.face_thumbnail?face=${face}`
@@ -133,9 +139,7 @@ export const getPeople = (includeHidden = false) =>
   }>
 export const getPerson = (person: string) => call(`${PEOPLE}.person`, { person }) as Promise<Person>
 export const getPhotoPeople = (file: string) =>
-  call(`${PEOPLE}.photo_people`, { file }) as Promise<
-    { face: string; person: string; person_name: string | null }[]
-  >
+  call(`${PEOPLE}.photo_people`, { file }) as Promise<PhotoPerson[]>
 export const renamePerson = (person: string, personName: string) =>
   call(`${PEOPLE}.rename_person`, { person, person_name: personName })
 export const setPersonHidden = (person: string, hidden: boolean) =>
