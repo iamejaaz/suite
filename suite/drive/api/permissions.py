@@ -311,4 +311,8 @@ def user_has_permission(doc, ptype, user=None):
         # Should ideally deflect to Framework
         ptype = "write"
     access = get_user_access_for_user(doc, user)
-    return bool(access.get(ptype))
+    if access.get(ptype):
+        return True
+    return ptype == "read" and any(
+        frappe.get_attr(hook)(doc, user) for hook in frappe.get_hooks("drive_read_grants")
+    )
