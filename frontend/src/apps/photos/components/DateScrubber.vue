@@ -14,7 +14,7 @@
       <span
         v-for="label in yearLabels"
         :key="label.year"
-        class="pointer-events-none absolute right-2 -translate-y-1/2 text-xs text-ink-gray-5"
+        class="pointer-events-none absolute right-4 -translate-y-1/2 text-xs text-ink-gray-5"
         :style="{ top: `${label.top * 100}%` }"
       >
         {{ label.year }}
@@ -22,7 +22,7 @@
 
       <div
         v-if="currentTop !== null && !hover"
-        class="pointer-events-none absolute right-0 h-0.5 w-5 -translate-y-1/2 rounded-full bg-surface-gray-7 transition-[top] duration-150"
+        class="pointer-events-none absolute right-0 h-0.5 w-3 -translate-y-1/2 rounded-full bg-surface-gray-7 transition-[top] duration-150"
         :style="{ top: `${currentTop * 100}%` }"
       />
 
