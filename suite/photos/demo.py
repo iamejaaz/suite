@@ -1,0 +1,240 @@
+import datetime
+import random
+import shutil
+import tempfile
+from fractions import Fraction
+from pathlib import Path
+
+import frappe
+import mimemapper
+import requests
+from PIL import Image
+
+from suite.drive.api.files import get_upload_path
+from suite.drive.utils import create_drive_file, get_file_type, get_new_file_name, update_file_size
+from suite.drive.utils.files import FileManager
+from suite.photos.api import albums as album_api
+from suite.photos.api import photos as photos_api
+from suite.photos.metadata import extract
+
+ADMIN = "Administrator"
+USERS = {
+    "priya": ("priya@example.com", "Priya", "Sharma"),
+    "rahul": ("rahul@example.com", "Rahul", "Verma"),
+    "ana": ("ana@example.com", "Ana", "Silva"),
+}
+CAMERAS = [
+    ("Apple", "iPhone 16 Pro"),
+    ("Google", "Pixel 9"),
+    ("SONY", "ILCE-7M4"),
+    ("FUJIFILM", "X-T5"),
+    ("Canon", "EOS R6"),
+]
+TRIPS = [
+    ("goa", (15.55, 73.75), (2025, 12, 27), 5, "admin", 12),
+    ("manali", (32.24, 77.19), (2026, 5, 18), 6, "admin", 12),
+    ("mumbai", (19.07, 72.88), (2026, 8, 2), 2, "admin", 5),
+    ("bengaluru", (12.97, 77.59), (2026, 9, 20), 3, "admin", 6),
+    ("paris", (48.857, 2.352), (2026, 4, 6), 5, "priya", 10),
+    ("tokyo", (35.68, 139.69), (2025, 3, 30), 6, "rahul", 10),
+    ("newyork", (40.73, -73.99), (2024, 10, 12), 4, "admin", 7),
+]
+PICSUM = "https://picsum.photos"
+
+
+def load(images_dir=None, count=80):
+    if frappe.db.exists("Photo Album", {"title": "Manali road trip", "owner": ADMIN}):
+        print("Demo data is already loaded.")
+        return
+
+    random.seed(42)
+    today = frappe.utils.now_datetime().replace(microsecond=0)
+    work = Path(tempfile.mkdtemp(prefix="photos-demo-"))
+    try:
+        sources = _sources(images_dir, count, work)
+        owners = _create_users()
+        plan = _plan(sources, today)
+        uploaded = {}
+        for index, (source, trip, gps, taken, owner) in enumerate(plan):
+            target = work / f"{trip.upper()}_{taken:%Y%m%d_%H%M}.jpg"
+            _with_exif(source, target, taken, gps, CAMERAS[index % len(CAMERAS)])
+            uploaded.setdefault(trip, []).append(_save(target, owners[owner], taken))
+            print(f"\rUploading {index + 1}/{len(plan)}", end="", flush=True)
+        print()
+        for trip, frame in (("goa", plan[0][0]), ("manali", plan[14][0])):
+            video = work / f"{trip.upper()}_clip.mp4"
+            taken = datetime.datetime(*next(t[2] for t in TRIPS if t[0] == trip), 17, 30)
+            _video(frame, video, taken)
+            uploaded[trip].append(_save(video, owners["admin"], taken))
+        _albums(uploaded, owners)
+        frappe.db.commit()
+        print(f"Loaded {sum(len(v) for v in uploaded.values())} photos and videos for 4 people.")
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+        frappe.set_user(ADMIN)
+
+
+def _sources(images_dir, count, work):
+    if images_dir:
+        files = sorted(p for p in Path(images_dir).iterdir() if p.suffix.lower() in (".jpg", ".jpeg", ".png"))
+        if not files:
+            frappe.throw(f"No .jpg or .png files in {images_dir}")
+        return files[:count]
+
+    print(f"Downloading {count} photos from {PICSUM} (Unsplash photos)")
+    listing = []
+    for page in (1, 2):
+        listing += requests.get(f"{PICSUM}/v2/list", params={"page": page, "limit": 100}, timeout=30).json()
+    random.shuffle(listing)
+    files = []
+    for index, row in enumerate(listing[:count]):
+        width, height = (1200, 1600) if index % 4 == 1 else (1600, 1600) if index % 7 == 3 else (1600, 1067)
+        response = requests.get(f"{PICSUM}/id/{row['id']}/{width}/{height}.jpg", timeout=60)
+        if response.ok:
+            path = work / f"source_{index:03}.jpg"
+            path.write_bytes(response.content)
+            files.append(path)
+        print(f"\rDownloaded {len(files)}/{count}", end="", flush=True)
+    print()
+    return files
+
+
+def _create_users():
+    owners = {"admin": ADMIN}
+    for key, (email, first, last) in USERS.items():
+        if not frappe.db.exists("User", email):
+            frappe.get_doc(
+                {
+                    "doctype": "User",
+                    "email": email,
+                    "first_name": first,
+                    "last_name": last,
+                    "send_welcome_email": 0,
+                    "user_type": "Website User",
+                }
+            ).insert(ignore_permissions=True)
+        owners[key] = email
+    return owners
+
+
+def _plan(sources, today):
+    plan = []
+    remaining = iter(sources)
+    memories = [(today.year - 1, 2, "bengaluru"), (today.year - 3, 2, "goa")]
+    for trip, gps, start, days, owner, wanted in TRIPS:
+        for _ in range(wanted):
+            source = next(remaining, None)
+            if not source:
+                return plan
+            taken = datetime.datetime(*start) + datetime.timedelta(
+                days=random.randint(0, days - 1), hours=random.randint(7, 20), minutes=random.randint(0, 59)
+            )
+            plan.append((source, trip, gps, taken, owner))
+    for year, days_back, trip in memories:
+        gps = next(t[1] for t in TRIPS if t[0] == trip)
+        for _ in range(4):
+            source = next(remaining, None)
+            if not source:
+                return plan
+            taken = today.replace(year=year) - datetime.timedelta(days=random.randint(0, days_back), hours=3)
+            plan.append((source, trip, gps, taken, "admin"))
+    for source in remaining:
+        taken = today - datetime.timedelta(
+            days=int(random.random() ** 1.5 * 900), hours=random.randint(0, 10)
+        )
+        plan.append((source, "photo", None, taken, "admin"))
+    return plan
+
+
+def _with_exif(source, target, taken, gps, camera):
+    image = Image.open(source).convert("RGB")
+    exif = Image.Exif()
+    exif[0x010F], exif[0x0110] = camera
+    exif.get_ifd(0x8769)[0x9003] = taken.strftime("%Y:%m:%d %H:%M:%S")
+    if gps:
+        lat = gps[0] + random.uniform(-0.03, 0.03)
+        lon = gps[1] + random.uniform(-0.03, 0.03)
+        tags = exif.get_ifd(0x8825)
+        tags[1], tags[2] = ("N" if lat >= 0 else "S"), _dms(lat)
+        tags[3], tags[4] = ("E" if lon >= 0 else "W"), _dms(lon)
+    image.save(target, quality=88, exif=exif)
+
+
+def _dms(value):
+    value = abs(value)
+    degrees = int(value)
+    minutes = int((value - degrees) * 60)
+    seconds = round(((value - degrees) * 60 - minutes) * 60, 2)
+    return (Fraction(degrees), Fraction(minutes), Fraction(seconds).limit_denominator(100))
+
+
+def _video(frame, target, taken):
+    import av
+
+    base = Image.open(frame).convert("RGB").resize((1920, 1280))
+    with av.open(str(target), "w") as container:
+        stream = container.add_stream("h264", rate=30)
+        stream.width, stream.height, stream.pix_fmt = 1280, 720, "yuv420p"
+        for step in range(150):
+            progress = step / 149
+            width = int(1920 - 640 * progress)
+            height = int(width * 9 / 16)
+            left = int((1920 - width) * progress * 0.6)
+            top = (1280 - height) // 2
+            image = base.crop((left, top, left + width, top + height)).resize((1280, 720))
+            for packet in stream.encode(av.VideoFrame.from_image(image)):
+                container.mux(packet)
+        for packet in stream.encode():
+            container.mux(packet)
+        container.metadata["creation_time"] = taken.strftime("%Y-%m-%dT%H:%M:%S.000000Z")
+
+
+def _save(path, owner, taken):
+    frappe.set_user(owner)
+    parent = photos_api.get_upload_folder()
+    file_name = get_new_file_name(path.name, parent)
+    temp = get_upload_path(f"demo_{frappe.generate_hash(8)}_{file_name}")
+    shutil.copyfile(path, temp)
+    mime_type = mimemapper.get_mime_type(str(temp), native_first=False)
+    manager = FileManager()
+    drive_file = create_drive_file(
+        file_name,
+        parent,
+        get_file_type(mime_type),
+        lambda file: "/" + str(manager.get_disk_path(file, False)),
+        mime_type,
+        temp.stat().st_size,
+        taken.timestamp(),
+        owner=owner,
+    )
+    manager.upload_file(temp, drive_file, True)
+    update_file_size(parent, drive_file.file_size)
+    extract(drive_file.name)
+    return drive_file.name
+
+
+def _albums(uploaded, owners):
+    admin, priya, rahul = owners["admin"], owners["priya"], owners["rahul"]
+    frappe.set_user(admin)
+    goa = album_api.create_album("Goa, December 2025", uploaded["goa"])
+    manali = album_api.create_album("Manali road trip", uploaded["manali"])
+    newyork = album_api.create_album("New York", uploaded["newyork"])
+    album_api.create_album("City walks", uploaded["mumbai"] + uploaded["bengaluru"])
+    album_api.update_access(manali, priya, read=1, write=1)
+    album_api.update_access(manali, rahul, read=1, write=0)
+    album_api.update_access(goa, "", read=1)
+    album_api.update_access(newyork, "$GENERAL", read=1)
+    favourites = uploaded["goa"][:3] + uploaded["manali"][:4] + uploaded["newyork"][:2]
+    for name in favourites:
+        frappe.get_doc({"doctype": "Drive Favourite", "entity": name, "user": admin}).insert(
+            ignore_permissions=True
+        )
+
+    frappe.set_user(priya)
+    paris = album_api.create_album("Paris weekend", uploaded["paris"])
+    album_api.update_access(paris, admin, read=1)
+    album_api.add_to_album(manali, uploaded["paris"][:2])
+
+    frappe.set_user(rahul)
+    tokyo = album_api.create_album("Tokyo in spring", uploaded["tokyo"])
+    album_api.update_access(tokyo, "$GENERAL", read=1)
