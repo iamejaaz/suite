@@ -100,6 +100,7 @@ export const ALBUM_PHOTOS = `${ALBUMS}.album_photos`
 export const getAlbums = () => call(`${ALBUMS}.albums`) as Promise<Album[]>
 export const getSharedAlbums = () => call(`${ALBUMS}.shared_albums`) as Promise<Album[]>
 export const getAlbum = (album: string) => call(`${ALBUMS}.get_album`, { album }) as Promise<Album>
+export const getAlbumFiles = (album: string) => call(`${ALBUMS}.album_files`, { album }) as Promise<string[]>
 export const createAlbum = (title: string, files: string[] = []) =>
   call(`${ALBUMS}.create_album`, { title, files }) as Promise<string>
 export const renameAlbum = (album: string, title: string) => call(`${ALBUMS}.rename_album`, { album, title })

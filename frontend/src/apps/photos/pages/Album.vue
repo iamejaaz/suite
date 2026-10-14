@@ -107,8 +107,10 @@ import { appPageMeta } from '@/utils/documentTitle'
 import {
   ALBUM_PHOTOS,
   type Album,
+  type Photo,
   deleteAlbum,
   getAlbum,
+  getAlbumFiles,
   leaveAlbum,
   removeFromAlbum,
   renameAlbum,
@@ -119,7 +121,7 @@ import AddPhotosDialog from '../components/AddPhotosDialog.vue'
 import PhotoGrid from '../components/PhotoGrid.vue'
 import PhotosHeader from '../components/PhotosHeader.vue'
 import ShareAlbumDialog from '../components/ShareAlbumDialog.vue'
-import { clearSelection, createFeed, loadAlbums, onUploaded, openLightbox } from '../store'
+import { clearSelection, createFeed, download, loadAlbums, onUploaded, openLightbox } from '../store'
 
 const props = defineProps<{ album: string }>()
 const router = useRouter()
@@ -160,6 +162,8 @@ const menu = computed(() => {
   const access = album.value?.access
   if (!access) return []
   const items = []
+  if (album.value?.count)
+    items.push({ label: __('Download album'), icon: 'lucide-download', onClick: downloadAll })
   if (access.write)
     items.push({
       label: __('Rename'),
@@ -174,6 +178,11 @@ const menu = computed(() => {
   else if (loggedIn.value) items.push({ label: __('Leave album'), icon: 'lucide-log-out', onClick: leave })
   return items
 })
+
+async function downloadAll() {
+  const files = await getAlbumFiles(props.album)
+  download(files.map((name) => ({ name }) as Photo))
+}
 
 function slideshow() {
   openLightbox(handle, handle.feed.rows[0].name, true)

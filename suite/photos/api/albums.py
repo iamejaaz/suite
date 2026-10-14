@@ -140,6 +140,12 @@ def get_album(album: str):
 
 
 @frappe.whitelist(allow_guest=True)
+def album_files(album: str):
+    _require(album, "read")
+    return frappe.get_all("Photo Album Item", filters={"album": album}, pluck="file", order_by="creation asc")
+
+
+@frappe.whitelist(allow_guest=True)
 def album_photos(album: str, start: int = 0, limit: int | None = None):
     _require(album, "read")
     start, limit = int(start or 0), int(limit or PAGE_SIZE)
