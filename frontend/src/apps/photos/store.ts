@@ -135,6 +135,16 @@ export function changeZoom(step: number) {
   zoom.value = Math.min(1.8, Math.max(0.5, Math.round((zoom.value + step) * 10) / 10))
 }
 
+export const collage = reactive<{ open: boolean; files: string[] }>({ open: false, files: [] })
+export function makeCollage(files: string[]) {
+  if (files.length < 2 || files.length > 9) {
+    toast.warning(__('Pick 2 to 9 photos for a collage'))
+    return
+  }
+  collage.files = files
+  collage.open = true
+}
+
 export const albumPicker = reactive<{ open: boolean; files: string[] }>({
   open: false,
   files: [],

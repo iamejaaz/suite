@@ -60,6 +60,7 @@
     </div>
     <Lightbox />
     <AlbumPicker />
+    <CollageDialog />
   </FrappeUIProvider>
 </template>
 
@@ -79,6 +80,7 @@ import photosLogo from '@/assets/app-logos/photos.svg'
 import { useSessionStore } from '@/boot/session'
 import { setupTheme } from '@/utils/setupTheme'
 import AlbumPicker from '../components/AlbumPicker.vue'
+import CollageDialog from '../components/CollageDialog.vue'
 import Lightbox from '../components/Lightbox.vue'
 import PhotosSidebar from '../components/PhotosSidebar.vue'
 import { clearSelection, lightbox, loadAlbums, uploadPhotos } from '../store'

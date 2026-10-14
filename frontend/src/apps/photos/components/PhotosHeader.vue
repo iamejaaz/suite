@@ -61,6 +61,7 @@ import LucideDownload from '~icons/lucide/download'
 import LucideImageMinus from '~icons/lucide/image-minus'
 import LucideImagePlus from '~icons/lucide/image-plus'
 import LucideImageUp from '~icons/lucide/image-up'
+import LucideLayoutGrid from '~icons/lucide/layout-grid'
 import LucideRotateCcw from '~icons/lucide/rotate-ccw'
 import LucideSearch from '~icons/lucide/search'
 import LucideStar from '~icons/lucide/star'
@@ -69,12 +70,13 @@ import LucideUpload from '~icons/lucide/upload'
 import LucideX from '~icons/lucide/x'
 
 import { useSessionStore } from '@/boot/session'
-import type { Album } from '../api'
+import { type Album, type Photo, isVideo } from '../api'
 import {
   activeFeed,
   archive,
   clearSelection,
   download,
+  makeCollage,
   pickAlbumFor,
   removeForever,
   restore,
@@ -105,6 +107,7 @@ const query = ref(String(route.query.q || ''))
 const confirmDelete = ref(false)
 const loggedIn = computed(() => useSessionStore().isLoggedIn)
 
+const rowFor = (name: string) => (activeFeed.value?.feed.rows ?? []).find((row) => row.name === name) as Photo
 const selected = () => (activeFeed.value?.feed.rows ?? []).filter((row) => selection.has(row.name))
 const writable = () =>
   selected()
@@ -158,6 +161,12 @@ const actions = computed<Action[]>(() => {
     { label: __('Favourite'), icon: LucideStar, run: () => toggleFavourite(selected()) },
     addToAlbum,
     save,
+    {
+      label: __('Create collage'),
+      icon: LucideLayoutGrid,
+      keepSelection: true,
+      run: (names) => makeCollage(names.filter((name) => !isVideo(rowFor(name)))),
+    },
     { label: __('Archive'), icon: LucideArchive, run: (names) => archive(names) },
     toTrash,
   ]
