@@ -11,27 +11,18 @@
           class="min-w-0"
           :class="{ 'flex-1': line.groups.length === 1 }"
         >
-          <div class="group/day flex h-9 items-end pb-2">
+          <div class="group/day flex h-9 items-center pt-1">
             <button
               class="flex shrink-0 overflow-hidden transition-all duration-200"
               :class="
                 selection.size
-                  ? 'w-7 opacity-100'
-                  : 'w-0 opacity-0 group-hover/day:w-7 group-hover/day:opacity-100'
+                  ? 'w-6 opacity-100'
+                  : 'w-0 opacity-0 group-hover/day:w-6 group-hover/day:opacity-100'
               "
               :aria-label="__('Select all from {0}', [group.label])"
               @click.stop="toggleGroup(group)"
             >
-              <span
-                class="flex size-5 items-center justify-center rounded-full transition-colors"
-                :class="
-                  isGroupSelected(group)
-                    ? 'bg-surface-gray-10 text-ink-base'
-                    : 'border-[1.5px] border-outline-gray-4 text-ink-gray-4 hover:border-outline-gray-5 hover:text-ink-gray-6'
-                "
-              >
-                <LucideCheck class="size-3.5" :stroke-width="3" />
-              </span>
+              <Checkbox class="pointer-events-none" :model-value="isGroupSelected(group)" />
             </button>
             <span class="text-sm font-medium text-ink-gray-7">{{ group.label }}</span>
           </div>
@@ -114,7 +105,7 @@
 <script setup lang="ts">
 import { type Component, computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useResizeObserver } from '@vueuse/core'
-import { ErrorMessage, LoadingIndicator } from 'frappe-ui'
+import { Checkbox, ErrorMessage, LoadingIndicator } from 'frappe-ui'
 import dayjs from 'dayjs'
 import LucideCheck from '~icons/lucide/check'
 import LucidePlay from '~icons/lucide/play'
