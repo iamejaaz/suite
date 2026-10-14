@@ -39,15 +39,12 @@
         >
           <div class="relative aspect-square overflow-hidden rounded-lg bg-surface-gray-2">
             <img :src="thumbnailUrl(row.name)" class="size-full object-cover" alt="" />
-            <span
-              class="absolute left-2 top-2 flex size-6 items-center justify-center rounded-full"
-              :class="
-                selected.has(row.name)
-                  ? 'bg-surface-gray-7 text-ink-white shadow-md ring-2 ring-white'
-                  : 'border-2 border-white bg-black/20 text-transparent shadow-sm'
-              "
-            >
-              <LucideCheck class="size-4" stroke-width="3" />
+            <div
+              v-if="selected.has(row.name)"
+              class="pointer-events-none absolute inset-0 bg-surface-white/20 ring-2 ring-inset ring-outline-gray-5"
+            />
+            <span class="pointer-events-none absolute left-2 top-2 flex p-0.5">
+              <Checkbox size="md" :model-value="selected.has(row.name)" />
             </span>
             <Badge
               v-if="position === 0"
@@ -69,9 +66,8 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
-import { Badge, Button, LoadingIndicator, call, toast, usePageMeta } from 'frappe-ui'
+import { Badge, Button, Checkbox, LoadingIndicator, call, toast, usePageMeta } from 'frappe-ui'
 import dayjs from 'dayjs'
-import LucideCheck from '~icons/lucide/check'
 import LucideCopyCheck from '~icons/lucide/copy-check'
 
 import { appPageMeta } from '@/utils/documentTitle'

@@ -8,22 +8,13 @@
           class="relative aspect-square overflow-hidden bg-surface-gray-2"
           @click="toggle(photo.name)"
         >
-          <img
-            :src="thumbnailUrl(photo.name)"
-            loading="lazy"
-            class="size-full object-cover transition-transform"
-            :class="{ 'scale-[0.88] rounded-lg': picked.has(photo.name) }"
-            alt=""
+          <img :src="thumbnailUrl(photo.name)" loading="lazy" class="size-full object-cover" alt="" />
+          <div
+            v-if="picked.has(photo.name)"
+            class="pointer-events-none absolute inset-0 bg-surface-white/20 ring-2 ring-inset ring-outline-gray-5"
           />
-          <span
-            class="absolute left-2 top-2 flex size-6 items-center justify-center rounded-full"
-            :class="
-              picked.has(photo.name)
-                ? 'bg-surface-gray-7 text-ink-white shadow-md ring-2 ring-white'
-                : 'border-2 border-white bg-black/20 text-transparent shadow-sm'
-            "
-          >
-            <LucideCheck class="size-4" stroke-width="3" />
+          <span class="pointer-events-none absolute left-2 top-2 flex p-0.5">
+            <Checkbox size="md" :model-value="picked.has(photo.name)" />
           </span>
         </button>
       </div>
@@ -50,8 +41,7 @@
 
 <script setup lang="ts">
 import { reactive, ref, watch } from 'vue'
-import { Button, Dialog, LoadingIndicator, toast } from 'frappe-ui'
-import LucideCheck from '~icons/lucide/check'
+import { Button, Checkbox, Dialog, LoadingIndicator, toast } from 'frappe-ui'
 import LucideUpload from '~icons/lucide/upload'
 
 import { type Album, addToAlbum, thumbnailUrl } from '../api'
