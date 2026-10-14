@@ -222,6 +222,15 @@ router.beforeEach(async (to, from) => {
   return (await runtime?.beforeEach?.(to, from)) ?? true
 })
 
+router.onError((error, to, from) => {
+  if (
+    from.matched.length &&
+    /dynamically imported module|Importing a module script failed/.test(String(error?.message))
+  ) {
+    window.location.assign(to.fullPath)
+  }
+})
+
 router.afterEach((to, from, failure) => {
   // A failed navigation (e.g. re-clicking the current folder, which vue-router reports
   // as duplicated but still runs afterEach for) leaves the page untouched — resetting
