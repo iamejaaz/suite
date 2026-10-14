@@ -11,18 +11,28 @@
           class="min-w-0"
           :class="{ 'flex-1': line.groups.length === 1 }"
         >
-          <div class="group/day relative flex h-9 items-end pb-2">
-            <span
-              class="absolute -left-[18px] bottom-2 flex cursor-pointer transition-opacity"
-              :class="selection.size ? 'opacity-100' : 'opacity-0 group-hover/day:opacity-100'"
+          <div class="group/day flex h-9 items-end pb-2">
+            <button
+              class="flex shrink-0 overflow-hidden transition-all duration-200"
+              :class="
+                selection.size
+                  ? 'w-7 opacity-100'
+                  : 'w-0 opacity-0 group-hover/day:w-7 group-hover/day:opacity-100'
+              "
+              :aria-label="__('Select all from {0}', [group.label])"
               @click.stop="toggleGroup(group)"
             >
-              <Checkbox
-                class="pointer-events-none"
-                :model-value="isGroupSelected(group)"
-                :aria-label="__('Select all from {0}', [group.label])"
-              />
-            </span>
+              <span
+                class="flex size-5 items-center justify-center rounded-full transition-colors"
+                :class="
+                  isGroupSelected(group)
+                    ? 'bg-surface-gray-10 text-ink-base'
+                    : 'border-[1.5px] border-outline-gray-4 text-ink-gray-4 hover:border-outline-gray-5 hover:text-ink-gray-6'
+                "
+              >
+                <LucideCheck class="size-3.5" :stroke-width="3" />
+              </span>
+            </button>
             <span class="text-sm font-medium text-ink-gray-7">{{ group.label }}</span>
           </div>
           <div v-for="(row, rowIndex) in group.rows" :key="rowIndex" class="mb-1 flex gap-1">
@@ -33,45 +43,49 @@
               :style="{ width: `${tile.width}px`, height: `${tile.height}px` }"
               @click="onTileClick($event, tile.photo)"
             >
-              <img
-                :src="thumbnailUrl(tile.photo.name)"
-                :alt="tile.photo.file_name"
-                loading="lazy"
-                decoding="async"
-                draggable="false"
-                class="size-full select-none object-cover"
-              />
               <div
-                v-if="selection.has(tile.photo.name)"
-                class="pointer-events-none absolute inset-0 bg-surface-white/20 ring-2 ring-inset ring-outline-gray-5"
-              />
-              <span
-                class="absolute left-2 top-2 flex rounded p-0.5 transition-opacity"
-                :class="
-                  selection.size || selection.has(tile.photo.name)
-                    ? 'opacity-100'
-                    : 'opacity-0 group-hover/tile:opacity-100'
-                "
-                @click.stop="toggle(tile.photo, $event)"
+                class="absolute overflow-hidden transition-all duration-200"
+                :class="selection.has(tile.photo.name) ? 'inset-3 rounded-md' : 'inset-0'"
               >
-                <Checkbox
-                  class="pointer-events-none"
-                  size="md"
-                  :model-value="selection.has(tile.photo.name)"
-                  :aria-label="selection.has(tile.photo.name) ? __('Deselect') : __('Select')"
+                <img
+                  :src="thumbnailUrl(tile.photo.name)"
+                  :alt="tile.photo.file_name"
+                  loading="lazy"
+                  decoding="async"
+                  draggable="false"
+                  class="size-full select-none object-cover transition-opacity duration-300"
+                  :class="loadedThumbs.has(tile.photo.name) ? 'opacity-100' : 'opacity-0'"
+                  @load="loadedThumbs.add(tile.photo.name)"
                 />
-              </span>
-              <div
-                v-if="isVideo(tile.photo)"
-                class="absolute right-2 top-2 flex items-center gap-1 text-xs font-medium text-white drop-shadow"
-              >
-                <span v-if="tile.photo.duration">{{ formatDuration(tile.photo.duration) }}</span>
-                <LucidePlay class="size-3.5 fill-current" />
+                <div
+                  class="pointer-events-none absolute inset-x-0 top-0 h-14 bg-gradient-to-b from-black/40 to-transparent transition-opacity"
+                  :class="selection.size ? 'opacity-100' : 'opacity-0 group-hover/tile:opacity-100'"
+                />
+                <button
+                  class="absolute left-2 top-2 flex size-5 items-center justify-center rounded-full transition"
+                  :class="[
+                    selection.has(tile.photo.name)
+                      ? 'bg-surface-gray-10 text-ink-base ring-2 ring-white'
+                      : 'border-2 border-white/90 text-transparent hover:bg-white/30 hover:text-white',
+                    selection.size ? 'opacity-100' : 'opacity-0 group-hover/tile:opacity-100',
+                  ]"
+                  :aria-label="selection.has(tile.photo.name) ? __('Deselect') : __('Select')"
+                  @click.stop="toggle(tile.photo, $event)"
+                >
+                  <LucideCheck class="size-3.5" :stroke-width="3" />
+                </button>
+                <div
+                  v-if="isVideo(tile.photo)"
+                  class="absolute right-2 top-2 flex items-center gap-1 rounded bg-black/50 px-1.5 py-0.5 text-xs font-medium text-white"
+                >
+                  <span v-if="tile.photo.duration">{{ formatDuration(tile.photo.duration) }}</span>
+                  <LucidePlay class="size-3.5 fill-current" />
+                </div>
+                <LucideStar
+                  v-if="tile.photo.is_favourite"
+                  class="absolute bottom-2 left-2 size-4 fill-white text-white drop-shadow"
+                />
               </div>
-              <LucideStar
-                v-if="tile.photo.is_favourite"
-                class="absolute bottom-2 left-2 size-4 fill-white text-white drop-shadow"
-              />
             </div>
           </div>
         </div>
@@ -98,10 +112,11 @@
 </template>
 
 <script setup lang="ts">
-import { type Component, computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { type Component, computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useResizeObserver } from '@vueuse/core'
-import { Checkbox, ErrorMessage, LoadingIndicator } from 'frappe-ui'
+import { ErrorMessage, LoadingIndicator } from 'frappe-ui'
 import dayjs from 'dayjs'
+import LucideCheck from '~icons/lucide/check'
 import LucidePlay from '~icons/lucide/play'
 import LucideStar from '~icons/lucide/star'
 
@@ -140,6 +155,7 @@ const DAY_GAP = 16
 const container = ref<HTMLElement>()
 const sentinel = ref<HTMLElement>()
 const width = ref(0)
+const loadedThumbs = reactive(new Set<string>())
 let lastClicked: string | null = null
 
 useResizeObserver(container, (entries) => {
