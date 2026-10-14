@@ -11,22 +11,15 @@
           class="min-w-0"
           :class="{ 'flex-1': line.groups.length === 1 }"
         >
-          <div class="group/day flex h-9 items-center gap-2 pt-2">
+          <div class="group/day relative flex h-9 items-end pb-2">
             <span
-              v-if="selection.size || isGroupSelected(group)"
-              class="flex"
+              class="absolute -left-[18px] bottom-2 flex cursor-pointer transition-opacity"
+              :class="selection.size ? 'opacity-100' : 'opacity-0 group-hover/day:opacity-100'"
               @click.stop="toggleGroup(group)"
             >
               <Checkbox
                 class="pointer-events-none"
                 :model-value="isGroupSelected(group)"
-                :aria-label="__('Select all from {0}', [group.label])"
-              />
-            </span>
-            <span v-else class="hidden group-hover/day:flex" @click.stop="toggleGroup(group)">
-              <Checkbox
-                class="pointer-events-none"
-                :model-value="false"
                 :aria-label="__('Select all from {0}', [group.label])"
               />
             </span>
