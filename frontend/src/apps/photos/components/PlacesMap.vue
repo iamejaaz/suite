@@ -35,21 +35,37 @@ function render() {
   }
   if (props.places.length) {
     map.fitBounds(L.latLngBounds(props.places.map((p) => [p.latitude, p.longitude] as [number, number])), {
-      padding: [48, 48],
+      padding: mapEl.value && mapEl.value.clientWidth < 500 ? [16, 16] : [48, 48],
       maxZoom: 9,
     })
   }
 }
 
+let resizeObserver: ResizeObserver | null = null
+
 onMounted(() => {
   if (!mapEl.value) return
-  map = L.map(mapEl.value, { zoomControl: true, attributionControl: true }).setView([20, 78], 4)
+  map = L.map(mapEl.value, {
+    zoomControl: true,
+    attributionControl: true,
+    minZoom: 1,
+    maxBounds: [
+      [-85, -180],
+      [85, 180],
+    ],
+    maxBoundsViscosity: 1,
+  }).setView([20, 78], 4)
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 18,
     attribution: '&copy; OpenStreetMap contributors',
   }).addTo(map)
   render()
+  resizeObserver = new ResizeObserver(() => map?.invalidateSize())
+  resizeObserver.observe(mapEl.value)
 })
 watch(() => props.places, render)
-onBeforeUnmount(() => map?.remove())
+onBeforeUnmount(() => {
+  resizeObserver?.disconnect()
+  map?.remove()
+})
 </script>
