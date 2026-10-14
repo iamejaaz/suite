@@ -2,7 +2,7 @@
   <PhotosHeader
     mode="album"
     :album="album ?? undefined"
-    :hide-upload="!album?.access?.write"
+    hide-upload
     @remove-from-album="removeItems"
     @set-cover="useAsCover"
   >
@@ -10,11 +10,11 @@
       <template v-if="loggedIn">
         <router-link
           :to="{ name: album?.access?.owner ? 'photos-albums' : 'photos-sharing' }"
-          class="text-lg font-semibold text-ink-gray-5 hover:text-ink-gray-8"
+          class="hidden text-lg font-semibold text-ink-gray-5 hover:text-ink-gray-8 sm:inline"
         >
           {{ album?.access?.owner ? __('Albums') : __('Sharing') }}
         </router-link>
-        <LucideChevronRight class="size-4 shrink-0 text-ink-gray-4" />
+        <LucideChevronRight class="hidden size-4 shrink-0 text-ink-gray-4 sm:block" />
       </template>
       <h1 class="truncate text-lg font-semibold text-ink-gray-9">{{ album?.title }}</h1>
       <span v-if="album && !album.access?.owner" class="hidden truncate text-sm text-ink-gray-5 sm:inline">
@@ -22,13 +22,18 @@
       </span>
     </template>
     <template #actions>
-      <Button v-if="album?.access?.write" variant="subtle" @click="adding = true">
+      <Button
+        v-if="album?.access?.write"
+        variant="subtle"
+        :aria-label="__('Add photos')"
+        @click="adding = true"
+      >
         <template #prefix><LucideImagePlus class="size-4" /></template>
-        {{ __('Add photos') }}
+        <span class="hidden sm:inline">{{ __('Add photos') }}</span>
       </Button>
-      <Button v-if="album?.access?.share" variant="solid" @click="sharing = true">
+      <Button v-if="album?.access?.share" variant="solid" :aria-label="__('Share')" @click="sharing = true">
         <template #prefix><LucideShare2 class="size-4" /></template>
-        {{ __('Share') }}
+        <span class="hidden sm:inline">{{ __('Share') }}</span>
       </Button>
       <Button
         v-if="album"
