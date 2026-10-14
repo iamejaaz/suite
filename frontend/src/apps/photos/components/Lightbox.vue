@@ -11,7 +11,7 @@
           </button>
           <div class="flex items-center gap-1">
             <Tooltip :text="__('Slideshow')">
-              <button class="lightbox-button" @click="lightbox.slideshow = true">
+              <button class="lightbox-button max-sm:hidden" @click="lightbox.slideshow = true">
                 <LucidePlay class="size-5" />
               </button>
             </Tooltip>
@@ -37,13 +37,13 @@
                 </button>
               </Tooltip>
               <Tooltip :text="__('Add to album')">
-                <button class="lightbox-button" @click="pickAlbumFor([photo.name])">
+                <button class="lightbox-button max-sm:hidden" @click="pickAlbumFor([photo.name])">
                   <LucideImagePlus class="size-5" />
                 </button>
               </Tooltip>
             </template>
             <Tooltip v-if="inDrive && !isVideo(photo)" :text="__('Edit')">
-              <button class="lightbox-button" @click="editing = true">
+              <button class="lightbox-button max-sm:hidden" @click="editing = true">
                 <LucideSlidersHorizontal class="size-5" />
               </button>
             </Tooltip>
@@ -54,16 +54,21 @@
             </Tooltip>
             <template v-if="inDrive">
               <Tooltip :text="details.archived ? __('Unarchive') : __('Archive')">
-                <button class="lightbox-button" @click="toggleArchive">
+                <button class="lightbox-button max-sm:hidden" @click="toggleArchive">
                   <component :is="details.archived ? LucideArchiveRestore : LucideArchive" class="size-5" />
                 </button>
               </Tooltip>
               <Tooltip :text="__('Open in Drive')">
-                <button class="lightbox-button" @click="openInDrive">
+                <button class="lightbox-button max-sm:hidden" @click="openInDrive">
                   <LucideFolderOpen class="size-5" />
                 </button>
               </Tooltip>
             </template>
+            <Dropdown :options="moreActions" placement="right">
+              <button class="lightbox-button sm:hidden" :aria-label="__('More')">
+                <LucideEllipsisVertical class="size-5" />
+              </button>
+            </Dropdown>
             <Tooltip v-if="photo.write" :text="__('Move to trash')">
               <button class="lightbox-button" @click="removeCurrent">
                 <LucideTrash2 class="size-5" />
@@ -178,7 +183,7 @@
                 >
                   <FaceAvatar :face="entry.face" class="size-12" />
                   <span
-                    class="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded bg-surface-gray-7 px-1 text-xs text-ink-white"
+                    class="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded bg-surface-gray-10 px-1 text-xs text-ink-base"
                   >
                     {{ formatTime(entry.timestamp) }}
                   </span>
@@ -244,7 +249,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { LoadingIndicator, Tooltip, useKeyboardShortcut } from 'frappe-ui'
+import { Dropdown, LoadingIndicator, Tooltip, useKeyboardShortcut } from 'frappe-ui'
 import dayjs from 'dayjs'
 import LucideAperture from '~icons/lucide/aperture'
 import LucideArchive from '~icons/lucide/archive'
@@ -254,6 +259,7 @@ import LucideCalendar from '~icons/lucide/calendar'
 import LucideChevronLeft from '~icons/lucide/chevron-left'
 import LucideChevronRight from '~icons/lucide/chevron-right'
 import LucideDownload from '~icons/lucide/download'
+import LucideEllipsisVertical from '~icons/lucide/ellipsis-vertical'
 import LucideFolder from '~icons/lucide/folder'
 import LucideFolderOpen from '~icons/lucide/folder-open'
 import LucideImage from '~icons/lucide/image'
@@ -302,6 +308,32 @@ const photo = computed(() => rows.value[lightbox.index])
 const loaded = ref(false)
 const editing = ref(false)
 const photoPeople = ref<PhotoPerson[]>([])
+
+const moreActions = computed(() => {
+  const items: { label: string; icon: string; onClick: () => unknown }[] = [
+    { label: __('Slideshow'), icon: 'lucide-play', onClick: () => (lightbox.slideshow = true) },
+  ]
+  if (inDrive.value) {
+    items.push({
+      label: __('Add to album'),
+      icon: 'lucide-image-plus',
+      onClick: () => pickAlbumFor([photo.value!.name]),
+    })
+    if (!isVideo(photo.value!))
+      items.push({
+        label: __('Edit'),
+        icon: 'lucide-sliders-horizontal',
+        onClick: () => (editing.value = true),
+      })
+    items.push({
+      label: details.value?.archived ? __('Unarchive') : __('Archive'),
+      icon: 'lucide-archive',
+      onClick: toggleArchive,
+    })
+    items.push({ label: __('Open in Drive'), icon: 'lucide-folder-open', onClick: openInDrive })
+  }
+  return items
+})
 const videoEl = ref<HTMLVideoElement>()
 
 function seek(timestamp: number | null) {
