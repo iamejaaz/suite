@@ -43,9 +43,9 @@
           <AccessSelect v-if="usersToAdd.length" v-model="accessToAdd" variant="ghost" :options="accessOptions" />
         </div>
 
-        <div v-if="usersWithAccess.data"
+        <div v-if="props.usersWithAccess.data"
           class="flex flex-col gap-3 overflow-y-auto text-base max-h-64 py-1 overflow-auto">
-          <div v-for="(user, idx) in usersWithAccess.data" :key="user.name" class="flex items-center gap-3 pr-1">
+          <div v-for="(user, idx) in props.usersWithAccess.data" :key="user.name" class="flex items-center gap-3 pr-1">
             <div v-if="user.is_group"
               class="size-7 shrink-0 rounded-full bg-surface-gray-3 flex items-center justify-center">
               <LucideUsers class="size-4 text-ink-gray-7" />
@@ -129,6 +129,7 @@ const props = defineProps({
   },
   usersWithAccess: { default: usersWithAccess },
   updateAccess: { default: updateAccess },
+  generalAccessUrl: { type: String, default: 'suite.drive.api.permissions.get_general_access' },
   /** Highest access level offered by the dialog ('reader' | 'upload' | 'editor'). */
   allowedAccess: { type: String, default: 'editor' },
 })
@@ -187,7 +188,7 @@ const generalPerms = ref('reader')
 const generalAccessLoaded = ref(false)
 
 createResource({
-  url: 'suite.drive.api.permissions.get_general_access',
+  url: props.generalAccessUrl,
   params: { entity: props.file.name },
   auto: true,
   onSuccess(data) {
