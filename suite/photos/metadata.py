@@ -1,0 +1,122 @@
+from datetime import datetime
+
+import frappe
+
+from suite.drive.utils.files import FileManager, storage_key
+
+EXIF_IFD = 0x8769
+GPS_IFD = 0x8825
+ORIENTATION = 0x0112
+DATETIME = 0x0132
+DATETIME_ORIGINAL = 0x9003
+MAKE = 0x010F
+MODEL = 0x0110
+ROTATED_ORIENTATIONS = {5, 6, 7, 8}
+
+
+def enqueue_extract(doc, method=None):
+    if doc.is_folder or not (doc.mime_type or "").startswith(("image/", "video/")):
+        return
+    frappe.enqueue(
+        "suite.photos.metadata.extract",
+        file_name=doc.name,
+        queue="short",
+        enqueue_after_commit=True,
+        deduplicate=True,
+        job_id=f"photo-metadata::{doc.name}",
+    )
+
+
+def enqueue_missing(names):
+    for name in names:
+        frappe.enqueue(
+            "suite.photos.metadata.extract",
+            file_name=name,
+            queue="short",
+            deduplicate=True,
+            job_id=f"photo-metadata::{name}",
+        )
+
+
+def extract(file_name):
+    if frappe.db.exists("Photo Metadata", file_name):
+        return
+    file = frappe.db.get_value("File", file_name, ["name", "file_url", "mime_type"], as_dict=True)
+    if not file or not file.file_url:
+        return
+
+    path = FileManager().site_folder / storage_key(file.file_url)
+    data = {}
+    if path.exists():
+        try:
+            if file.mime_type.startswith("image/"):
+                data = _image_metadata(str(path))
+            elif file.mime_type.startswith("video/"):
+                data = _video_metadata(str(path))
+        except Exception:
+            frappe.log_error(f"Photo metadata extraction failed for {file_name}")
+
+    frappe.get_doc({"doctype": "Photo Metadata", "file": file_name, **data}).insert(
+        ignore_permissions=True, ignore_if_duplicate=True
+    )
+
+
+def _image_metadata(path):
+    from PIL import Image
+
+    with Image.open(path) as image:
+        width, height = image.size
+        exif = image.getexif()
+
+    if exif.get(ORIENTATION) in ROTATED_ORIENTATIONS:
+        width, height = height, width
+
+    details = exif.get_ifd(EXIF_IFD)
+    camera = " ".join(filter(None, [exif.get(MAKE), exif.get(MODEL)])).strip()
+    latitude, longitude = _gps(exif.get_ifd(GPS_IFD))
+    return {
+        "width": width,
+        "height": height,
+        "taken_on": _exif_datetime(details.get(DATETIME_ORIGINAL) or exif.get(DATETIME)),
+        "camera": camera[:140] or None,
+        "latitude": latitude,
+        "longitude": longitude,
+    }
+
+
+def _video_metadata(path):
+    import av
+
+    with av.open(path) as container:
+        stream = container.streams.video[0]
+        width, height = stream.width, stream.height
+        created = container.metadata.get("creation_time")
+        duration = container.duration / 1_000_000 if container.duration else None
+
+    taken_on = None
+    if created:
+        try:
+            taken_on = datetime.fromisoformat(created.replace("Z", "+00:00")).replace(tzinfo=None)
+        except ValueError:
+            pass
+    return {"width": width, "height": height, "duration": duration, "taken_on": taken_on}
+
+
+def _exif_datetime(value):
+    if not value:
+        return None
+    try:
+        return datetime.strptime(str(value).strip("\x00 "), "%Y:%m:%d %H:%M:%S")
+    except ValueError:
+        return None
+
+
+def _gps(gps):
+    def to_degrees(values, ref):
+        degrees = float(values[0]) + float(values[1]) / 60 + float(values[2]) / 3600
+        return -degrees if ref in ("S", "W") else degrees
+
+    try:
+        return to_degrees(gps[2], gps[1]), to_degrees(gps[4], gps[3])
+    except KeyError, IndexError, TypeError, ZeroDivisionError:
+        return None, None

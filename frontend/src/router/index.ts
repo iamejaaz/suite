@@ -15,6 +15,7 @@ import { routes as calendarRoutes } from '@/apps/calendar/routes'
 import { routes as driveRoutes } from '@/apps/drive/routes'
 import { routes as mailRoutes } from '@/apps/mail/routes'
 import { routes as meetRoutes } from '@/apps/meet/routes'
+import { routes as photosRoutes } from '@/apps/photos/routes'
 import { routes as sheetsRoutes } from '@/apps/sheets/routes'
 import { routes as slidesRoutes } from '@/apps/slides/routes'
 import { routes as writerRoutes } from '@/apps/writer/routes'
@@ -44,6 +45,7 @@ declare module 'vue-router' {
 
 const appRoutes: Record<string, RouteRecordRaw[]> = {
   drive: driveRoutes,
+  photos: photosRoutes,
   slides: slidesRoutes,
   writer: writerRoutes,
   sheets: sheetsRoutes,

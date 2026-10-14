@@ -60,6 +60,8 @@ website_route_rules = [
     {"from_route": "/meet/<path:app_path>", "to_route": "suite"},
     {"from_route": "/calendar", "to_route": "suite"},
     {"from_route": "/calendar/<path:app_path>", "to_route": "suite"},
+    {"from_route": "/photos", "to_route": "suite"},
+    {"from_route": "/photos/<path:app_path>", "to_route": "suite"},
 ]
 
 home_page = "suite"
@@ -221,9 +223,12 @@ override_whitelisted_methods = {
 # ============================================================================
 # Document Events (deep-merged; per-doctype/per-event handler lists combined)
 # ============================================================================
+drive_read_grants = ["suite.photos.api.albums.grants_read"]
+
 doc_events = {
     "File": {
         "on_update": "suite.meet.recording.ingest.delete_recording_metadata_for_removed_artifact",
+        "after_insert": "suite.photos.metadata.enqueue_extract",
     },
     "User Group": {
         "on_update": "suite.drive.utils.clear_user_group_cache",

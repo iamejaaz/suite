@@ -1,5 +1,5 @@
 /**
- * Single source of truth for the 7 suite apps.
+ * Single source of truth for the suite apps.
  *
  * Both the router (one lazy route group per app, prefix preserved) and the
  * shell launcher (app switcher) read this list. A per-app port should NOT need
@@ -13,6 +13,7 @@ import calendarLogo from '@/assets/app-logos/calendar.svg'
 import driveLogo from '@/assets/app-logos/drive.svg'
 import mailLogo from '@/assets/app-logos/mail.svg'
 import meetLogo from '@/assets/app-logos/meet.png'
+import photosLogo from '@/assets/app-logos/photos.svg'
 import sheetsLogo from '@/assets/app-logos/sheets.svg'
 import slidesLogo from '@/assets/app-logos/slides.svg'
 import suiteLogo from '@/assets/app-logos/suite.svg'
@@ -47,6 +48,7 @@ export const SUITE_LOGO = suiteLogo
 
 export const SUITE_APPS: SuiteApp[] = [
   { id: 'drive', name: 'Drive', prefix: '/drive', logo: driveLogo },
+  { id: 'photos', name: 'Photos', prefix: '/photos', logo: photosLogo },
   { id: 'slides', name: 'Slides', prefix: '/slides', logo: slidesLogo },
   { id: 'writer', name: 'Writer', prefix: '/writer', logo: writerLogo },
   { id: 'sheets', name: 'Sheets', prefix: '/sheets', logo: sheetsLogo },
